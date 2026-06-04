@@ -172,6 +172,6 @@ Producer wakes up       |Consumer wakes up
 
 ### LinkedTransferQueue
 - LinkedBlockingQueue + SynchronousQueue
-- `put()` stores data and return immediately & `transfer()` wait untill consumer arrives.
-- `take()` waits if data is not available & `poll()` does not wait, returns null immedietly.
+- `put()` stores data and return immediately & `transfer()` wait untill consumer arrives(wait using park() & unpark()).
+- `take()` waits if data is not available & `poll()` does not wait, returns null immedietly if data is not available.
 - Use CAS for synchronization.

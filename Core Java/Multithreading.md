@@ -994,12 +994,113 @@ Supplier<String> s = () -> "Java";
 
 ## Virtual Threads
 
-- Lightweight threads managed by JVM.
+- Lightweight threads managed by JVM instead of OS.
+- Main Advantage : If virtual thread is waiting, it says lets someone else use the real thread.
 
 ```java
+virtualThread.sleep(5 sec)
+```
+
+```java
+// Before sleep
+Virtual Thread A
+      |
+Platform Thread 1
+
+// During sleep
+Virtual Thread A -> parked
+Platform Thread 1 -> free // => Platform Thread 1 starts running another Virtual Thread, that's why it is scalable
+
+// After sleep
+Virtual Thread A resumes, may be on different platform thread.
+```
+
+- Example :
+
+```java
+// Single Virtual Thread
 Thread.startVirtualThread(() -> {
     System.out.println("Virtual Thread");
 });
 ```
+
+```java
+// Virtual Thread Executor
+try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+    // Each task gets its own Virtual Thread
+    executor.submit(() -> {
+        System.out.println("Task 1");
+    });
+
+    executor.submit(() -> {
+        System.out.println("Task 2");
+    });
+}
+```
+
+```java
+Thread vt = Thread.startVirtualThread(() -> {
+    System.out.println("Work");
+});
+
+vt.join();  // Main thread waits until Virtual Thread finishes
+```
+
+```java
+// Each async task runs in a Virtual Thread
+CompletableFuture.runAsync(
+    task,
+    Executors.newVirtualThreadPerTaskExecutor()
+);
+```
+
+- Carrier Thread : Real OS thread used to run Virtual Threads (Carrier Thread = Platform Thread).
+- Mount : Virtual Thread attached to Carrier Thread (VT -> PT).
+- Unmount : Virtual Thread detached (VT parked, PT free).
+- Pinning : Virtual Thread cannot detach while inside some blocking operations under synchronized, Carrier Thread gets stuck, it's called pinning.
+
+```java
+synchronized(lock) {
+    Thread.sleep(5000);
+}
+```
+
+- Avoid Pinning : Use ReentrantLock, because ReentrantLock is implemented in Java using AQS and is Virtual-Thread-friendly.
+
+## ThreadLocal
+
+- Use when Each thread should have its own private copy of a variable.
+
+```java
+ThreadLocal<String> user = new ThreadLocal<>();
+
+user.set("Vrajesh");    // In Thread - 1
+user.get() -> Vrajesh   // Thread - 1
+user.get() -> null      // Thread - 2
+```
+
+- How it internally works :
+
+```java
+Thread
+ └── ThreadLocalMap
+       ├── key -> ThreadLocal
+       └── value -> Data
+
+// If called,
+user.set("Vrajesh");
+
+Current Thread
+      ↓
+ThreadLocalMap
+      ↓
+user -> "Vrajesh"
+
+// If called, Java looks in the current thread's map
+user.get();
+```
+
+- Should not use ThreadLocal with vrtual Thread, because millions of Virtual Threads is possible and it results high memory usage.
+
 
 ## Structured Concurrency
