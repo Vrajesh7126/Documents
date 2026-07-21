@@ -46,7 +46,7 @@ ON <table_name>(<column_name>)
 ```
 
 ```sql
-// Create an index for employee name
+-- Create an index for employee name
 CREATE INDEX edx_emp_name    
 ON Employee(emp_name)
 ```
@@ -64,7 +64,7 @@ ON Employee(emp_name)
 
 - **Where should we not use INDEX :**
     - Small tables
-    - Column that change very frequently(INSERT, UPDATE, DELETE), because maintaining during the modification cost high to maintain it's indexing.
+    - Column that change very frequently (`INSERT, UPDATE, DELETE`), because maintaining during the modification cost high to maintain it's indexing.
     - Column with very few unique values (like gender, status)
 
 - **Types of Indexes:**
@@ -85,6 +85,7 @@ INCREMENT BY 1
 CACHE 20 | NOCACHE  -- Optional
 MINVALUE 1          -- Optional
 MAXVALUE 10         -- Optional
+NOMAXVALUE          -- Default
 CYCLE | NOCYCLE     -- Optional
 ;
 
@@ -97,7 +98,7 @@ SELECT <sequence_name>.CURRVAL
 FROM dual;
 ```
 
-- Min value = 1, Max value = 9999
+- Min value = 1, Max value = 10^28 - 1
 - After reach to the max value, start with the Min value = 1
 - `CYCLE` : After reaching to max, start with the min
 - `NOCYCLE` : Stop when maximum reached (Used for Primary Keys)
@@ -114,7 +115,7 @@ ROLLBACK;   -- Row is removed, but sequence can't be rollback
 
 # Transaction
 - Group of SQL statement treated as unit of work.
-- All succeed or fail ogether.
+- All succeed or fail together.
 - **Commit** : Permenently saves all changes made in the current transaction.
 - **Rollback** : Undo changes in curent transaction.
 - **Checkpoint** : 
@@ -155,7 +156,7 @@ END;
 - **Atomicity** : All or nothing.
 - **Consistency** : A Transaction always keeps the DB in a valid state.
 - **Isolation** : Multiple users can work at a same time without interfering with each other.
-- **Durability** : After `COMMIT`, the data s permenently saved.
+- **Durability** : After `COMMIT`, the data is permenently saved.
 
 - **Locks** : When you update a row, oracle apply the lock at that row, so another user can't update the same row until `COMMIT` or `ROLLBACK`, this prevents data corruption.
 
@@ -181,6 +182,14 @@ WHERE emp_id = 101;
 # DDL (Data defination language)
 - DDL is used to create or change the structure of DB objects.
 - CREATE, ALTER, DROP, TRUNCATE, RENAME.
+
+| Command      | Deletes Rows           | Deletes Table Structure  | `WHERE` Allowed | Can Rollback?            |
+| ------------ | ---------------------- | ------------------------ | --------------- | ------------------------ |
+| **DELETE**   | ✅ Selected or all rows | ❌ No                     | ✅ Yes           | ✅ Yes (before `COMMIT`)  |
+| **TRUNCATE** | ✅ All rows             | ❌ No                     | ❌ No            | ❌ No (implicit `COMMIT`) |
+| **DROP**     | ✅ All rows             | ✅ Yes (table is removed) | ❌ No            | ❌ No                     |
+
+
 - DDL statements perform an implicit COMMIT before and after they execute.
 
 ```sql
@@ -190,6 +199,30 @@ SET salary = 60000;
 CREATE TABLE test(
    id NUMBER
 );
+```
+
+# DML
+- DML is used to modify the data in database tables (INSERT, UPDATE, DELETE).
+
+```sql
+BEGIN
+    INSERT INTO employee
+    VALUES (1, "Vrajesh");
+
+    -- Like that we can perform UPDATE & DELETE also
+END;
+/
+```
+
+```sql
+DECLARE
+    _salary NUMBER;
+BEGIN
+    UPDATE employee
+    SET salary := _salary   -- Can use variable with the query
+    WHEN emp_id = 101;
+END;
+/
 ```
 
 ```sql
@@ -218,13 +251,13 @@ BEGIN
     -- Actual Program (Mandatory)
 EXCEPTION
     -- Error handling (Optional)
-END;
+END;    -- Mandatory
 /
 ```
 
 ## Types of PL/SQL Block
 
-### 1. Anonymous BLock
+### 1. Anonymous Block
 - No name
 - Written and executed once
 - Can not be called again
@@ -240,7 +273,7 @@ END;
 
 ### 2. Named Block
 - Stored in DB and can be reused
-- Example : Procedure, Function, Trigger, Package
+- Example : `Procedure`, `Function`, `Trigger`, `Package`
 
 # Variables & Constants
 - Used to store the values in memory while PL/SQL block is executing.
@@ -326,7 +359,7 @@ END LOOP;
 ```
 
 ## 3. For Loop
-- Use when initially now tohe number of iterations.
+- Use when initially now know the number of iterations.
 ```sql
 FOR variable IN start..end LOOP
     -- Code
@@ -377,30 +410,6 @@ END;
 - If no row found : Oracle Throws `NO_DATA_FOUND`
 - If multiple row found : Oracle Throws `TOO_MANY_ROWS`
 
-# DML
-- DML is used to modify the data in database tables (INSERT, UPDATE, DELETE).
-
-```sql
-BEGIN
-    INSERT INTO employee
-    VALUES (1, "Vrajesh");
-
-    -- Like that we can perform UPDATE & DELETE also
-END;
-/
-```
-
-```sql
-DECLARE
-    _salary NUMBER;
-BEGIN
-    UPDATE employee
-    SET salary := _salary   -- Can use variable with the query
-    WHEN emp_id = 101;
-END;
-/
-```
-
 ## SQL Attributes
 
 | Attribute      | Meaning                                                             |
@@ -408,20 +417,20 @@ END;
 | `SQL%ROWCOUNT` | Number of affected rows                                             |
 | `SQL%FOUND`    | `TRUE` if at least one row was affected                             |
 | `SQL%NOTFOUND` | `TRUE` if no rows were affected                                     |
-| `SQL%ISOPEN`   | Always `FALSE` for normal SQL statements (used mainly with cursors) |
+| `cursor_name%ISOPEN`   | Always `FALSE` for normal SQL statements (used mainly with explicit cursors) |
 
 - DML Changes become permenant If `COMMIT;` & Rollback If `ROLLBACK;`
 
 # CURSORS
-- Used to fetch and peocess multiples rows returned by the SQL query.
+- Used to fetch and process multiples rows returned by the SQL query.
 - `SELECT INTO` is for one row.
 - `CURSOR` is for multiples of rows.
 
 ## Types of Cursor
 
 ### 1. Implicit Cursor
-- Created automatically by Oracle
-- When we execute INSERT, UPDATE, DELETE, SELECT INTO, implicit cursor will be created.
+- Created automatically by Oracle.
+- When we execute `INSERT`, `UPDATE`, `DELETE`, `SELECT INTO` implicit cursor will be created.
 
 ### 1. Explicit Cursor
 - When query returns a multiples of rows, you create your own cursor.
@@ -438,7 +447,7 @@ BEGIN
     OPEN cursor_name    -- Execute the query and prepare the result
 
     LOOP
-        FETCH cursor_name INTO variable_name;   -- REad one row into variable_name
+        FETCH cursor_name INTO variable_name;   -- Read one row into variable_name
 
         EXIT WHEN cursor_name%NOTFOUND; -- Check if cursor contains data or not
 
@@ -506,10 +515,10 @@ DECLARE
         variable_name2 datatype,
     );
 
-    _record_name record_type;
+    record_name record_type;
 BEGIN
     SELECT column_name1, column_name2
-    INTO _record_name
+    INTO record_name
     FROM table_name
     WHERE condition;
 END;
@@ -547,18 +556,19 @@ END;
 ### 1. Associative Array (Index by table)
 - Java's HashMap.
 - Store key-value pairs.
+- Key could be `PLS_INTEGER` or `VARCHAR2`
 
 ```sql
 DECLARE
-    TYPE array_name IS TABLE OF data_type INDEX BY data_type;
+    TYPE array_name IS TABLE OF data_type INDEX BY PLS_INTEGER | VARCHAR2;
 
-    _myArray array_name;
+    myArray array_name;
 
 BEGIN
-    _myArray(key1) := value1
-    _myArray(key2) := value2
+    myArray(key1) := value1
+    myArray(key2) := value2
 
-    DBMS_OUTPUT.PUT_LINE(_myArray(key1));   -- Print value1
+    DBMS_OUTPUT.PUT_LINE(myArray(key1));   -- Print value1
 END;
 /
 ```
@@ -570,12 +580,12 @@ END;
 DECLARE
     TYPE table_name IS TABLE OF datatype;
 
-    _array  table_name := table_name(value1, value2, value3);
+    myTable table_name := table_name(value1, value2, value3);
 BEGIN
-    _array.EXTEND;  -- Extend the capacity of the nested table
-    _array(4) := value4;    -- And then can add value, otherwise it give an error
+    myTable.EXTEND;  -- Extend the capacity of the nested table
+    myTable(4) := value4;    -- And then can add value, otherwise it give an error
 
-    DBMS_OUTPUT.PUT_LINE(table_name(1));    -- Print value1
+    DBMS_OUTPUT.PUT_LINE(myTable(1));    -- Print value1
 END;
 /
 ```
@@ -586,10 +596,10 @@ END;
 DECLARE
     TYPE varray_name IS VARRAY(5) OF data_type;
 
-    _myVarray varray_name := varray_name(value1, value2, value3);
+    myVarray varray_name := varray_name(value1, value2, value3);
 BEGIN
-    _myVarray.EXTEND;
-    _myVarray(4) := value4;
+    myVarray.EXTEND;
+    myVarray(4) := value4;
 END;
 /
 ```
@@ -598,10 +608,11 @@ END;
 1. COUNT
 2. FIRST
 3. LAST
-4. DELETE(index)
-5. EXIST(index)
+4. NEXT (index)
+4. DELETE (index)
+5. EXIST (index)
 
-- Use to process thousands f rows in memory.
+- Use to process thousands of rows in memory.
 - Use with `BULK COLLECT` & `FORALL`
 
 ---
@@ -704,9 +715,9 @@ ORDER BY getBonus(salary);
 # PARAMETERS
 - Used to pass the data between Caller & Procedure/Function.
 
-1. IN : Caller → Procedure
-2. OUT : Procedure → Caller
-3. IN OUT : Both
+1. **IN** : Caller → Procedure
+2. **OUT** : Procedure → Caller
+3. **IN OUT** : Both
 
 # Package
 - Container that groups related PL/SQL Objects together.
@@ -812,9 +823,6 @@ END IF;
     - Logging
     - Auditing
 
-# Dynamic SQL
--- Coming Soon
-
 # BULK COLLECT & FORALL
 - Normally, PL/SQL process 1 row at a time, which is slower for large amount of data.
 - `BULK COLLECT` & `FORALL` allows you to process many rows at once.
@@ -837,7 +845,7 @@ END;
 
 ## 2. FORALL
 - FORALL performs INSERT, UPDATE, DELETE for all elements in a collection in one operation (Use collection to perform DML).
-- Write Multiple Rows (Use with `INSERT, UPDATE, DELETE`)
+- Write Multiple Rows (Use with `INSERT`, `UPDATE`, `DELETE`)
 
 ```sql
 FORALL i IN 1..collection_name.COUNT
@@ -930,7 +938,7 @@ FORALL i IN 1..ids.COUNT
 ```
 
 # Handling Errors
-- AFter `SAVE EXCEPTION`, Oracle stores the error in : `SQL%BULK_EXCEPTIONS`.
+- After `SAVE EXCEPTION`, Oracle stores the error in : `SQL%BULK_EXCEPTIONS`.
 
 ```sql
 EXCEPTION
