@@ -64,7 +64,7 @@ ON Employee(emp_name)
 
 - **Where should we not use INDEX :**
     - Small tables
-    - Column that change very frequently (`INSERT, UPDATE, DELETE`), because maintaining during the modification cost high to maintain it's indexing.
+    - Column that change very frequently (`INSERT`, `UPDATE`, `DELETE`), because maintaining during the modification cost high to maintain it's indexing.
     - Column with very few unique values (like gender, status)
 
 - **Types of Indexes:**
@@ -288,17 +288,17 @@ constant_name CONSTANT datatype := value;
 ```
 
 # Data Types
-1. NUMBER
-2. VARCHAR2 : Store variable length text
-3. CHAR : Stores fixed length text
-4. DATE
-5. BOOLEAN : Stores TRUE, FALSE, NULL (It's available inside the PL/SQL not as a column in Oracle Table)
-6. %TYPE : Copy data type as same as column type
+1. **NUMBER**
+2. **VARCHAR2** : Store variable length text
+3. **CHAR** : Stores fixed length text
+4. **DATE**
+5. **BOOLEAN** : Stores TRUE, FALSE, NULL (It's available inside the PL/SQL not as a column in Oracle Table)
+6. **%TYPE** : Copy data type as same as column type
     ```sql
     DECLARE
         variable_name table_name.column_name%TYPE;
     ```
-7. %ROWTYPE : Copy entire row structure of the table.
+7. **%ROWTYPE** : Copy entire row structure of the table.
     ```sql
     DECLARE
         variable_name table_name%ROWTYPE;
@@ -359,7 +359,7 @@ END LOOP;
 ```
 
 ## 3. For Loop
-- Use when initially now know the number of iterations.
+- Use when initially know the number of iterations.
 ```sql
 FOR variable IN start..end LOOP
     -- Code
@@ -372,7 +372,7 @@ END LOOP;
 ```
 
 # Exit & Continue
-1. EXIT : Exit the loop (Java's break)
+1. **EXIT** : Exit the loop (Java's break)
 ```sql
 LOOP
     -- Code
@@ -380,7 +380,7 @@ LOOP
 END LOOP;
 ```
 
-2. CONTINUE : Skip the remaining code of the current iteration and start with the next iteration. (Java's Continue)
+2. **CONTINUE** : Skip the remaining code of the current iteration and start with the next iteration. (Java's Continue)
 ```sql
 LOOP
     -- Code
@@ -417,7 +417,7 @@ END;
 | `SQL%ROWCOUNT` | Number of affected rows                                             |
 | `SQL%FOUND`    | `TRUE` if at least one row was affected                             |
 | `SQL%NOTFOUND` | `TRUE` if no rows were affected                                     |
-| `cursor_name%ISOPEN`   | Always `FALSE` for normal SQL statements (used mainly with explicit cursors) |
+| `SQL%ISOPEN`   | Always `FALSE` becuse Oracle automatically opens and close the implicit cursor.  (used mainly with explicit cursors) |
 
 - DML Changes become permenant If `COMMIT;` & Rollback If `ROLLBACK;`
 
@@ -461,12 +461,12 @@ END;
 ```
 
 ## Cursor Attributes
-| Attribute   | Meaning                       |
-| ----------- | ----------------------------- |
-| `%FOUND`    | Last `FETCH` succeeded        |
-| `%NOTFOUND` | No more rows                  |
-| `%ROWCOUNT` | Number of rows fetched so far |
-| `%ISOPEN`   | Whether the cursor is open    |
+| Attribute   | Meaning                        |
+| ----------- | ------------------------------ |
+| `%FOUND`    | True If Row was fetched        |
+| `%NOTFOUND` | No more rows                   |
+| `%ROWCOUNT` | Number of rows fetched so far  |
+| `%ISOPEN`   | Whether the cursor is open     |
 
 ## FOR CURSOR Loop
 - Oracle Automatically do `OPEN` the cursor, `FETCH` the row, `CLOSE` the cursor.
@@ -506,7 +506,7 @@ END;
 ```
 
 ## User defined records
-- Someitimes you don't need all columns, so we can create our own record.
+- Sometimes you don't need all columns, so we can create our own record.
 
 ```sql
 DECLARE
@@ -582,8 +582,8 @@ DECLARE
 
     myTable table_name := table_name(value1, value2, value3);
 BEGIN
-    myTable.EXTEND;  -- Extend the capacity of the nested table
-    myTable(4) := value4;    -- And then can add value, otherwise it give an error
+    myTable.EXTEND;         -- Extend the capacity of the nested table
+    myTable(4) := value4;   -- And then can add value, otherwise it give an error
 
     DBMS_OUTPUT.PUT_LINE(myTable(1));    -- Print value1
 END;
@@ -678,7 +678,7 @@ END;
 /
 ```
 
-- Use with SQL Queries and with expressions because it returns the value.
+- Use with **SQL Queries** and with **Expressions** because it returns the value.
 - Example :
 
 ```sql
@@ -850,8 +850,8 @@ END;
 ```sql
 FORALL i IN 1..collection_name.COUNT
     UPDATE table_name
-    SET column_name = collection_name(i)
-    WHERE id = i;
+    SET column_name = collection_name(i).column_name1 + 1000
+    WHERE id = collection_name(i).column_name2;
 ```
 
 - Oracle sends all update efficiently.
@@ -925,7 +925,7 @@ END;
 ```
 
 # SAVE EXCEPTIONS
-- Used with FORALL.
+- Used with **FORALL**.
 - While performing a Batch oprations, If something goes fail then instead of stopping there and don't proceed the remaining rows, that row should save the exception and continue the further proceed for the remaining rows.
 
 ```sql
@@ -953,3 +953,94 @@ WHEN OTHERS THEN
 
 - **ERROR_INDEX** : Which element from the collection failed.
 - **ERROR_CODE** : Oracle error number.
+
+# Synonyms
+- Alternate name (alias) for a database object.
+- A synonym does not store the data, it only stored the reference to another object (Tables, Views, Sequences, Procedures, Functions, Packages).
+- A single database can have multiple users, and each user has it's own schema like tables, views, procedures, sequences, etc.
+
+- Benifits :
+    - **Simpler queries**
+    - **Hide Schema Names** : Application doesn't need to know whether the object belong to HR, ADMIN, Vrajesh.
+    - **Easy Maintenance** : Suppose table moves from HR to ADMIN, need to change only synonym
+    - 
+
+- Can one schema use another schema's objects?
+    - Yes, if the owner grants the permission.
+    - For example, If HR can grant SELECT on EMPLOYEE to vrajesh user.
+
+    ```sql
+    GRANT SELECT ON employee TO vrajesh;
+    ```
+
+    - Now vrajesh user can do
+
+    ```sql
+    SELECT *
+    FROM HR.Employee;
+
+    -- or create synonym
+
+    CREATE SYNONYM employee FOR HR.Employee;
+    ```
+
+    - Then vrajesh user can do,
+
+    ```sql
+    SELECT * From employee;
+    ```
+
+## Private Synonym
+- Visible only to the user who creates it.
+
+```sql
+CREATE SYNONYM employee
+FOR HR.Employee;
+```
+
+## Public Synonym
+- Visible to all database users.
+- Only visible to all other user, it doesn't mean they can access without the permission of the HR, for it user need to get the access from the HR.
+
+```sql
+CREATE PUBLIC SYNONYM employee
+FOR HR.Employee;
+```
+
+# Materialized View
+- Store the query result physically in the database.
+- Copy of the query result.
+- **Benifit** : Store the result once and use by all the users instead of run the query again and again which may takes time to be execute.
+
+```sql
+CREATE MATERIALIZED VIEW view_name
+AS
+SELECT column_name(s)
+FROM table_name;
+```
+
+```sql
+-- Read the stored data into materialized view directly.
+SELECT *
+FROM view_name
+```
+
+- If table was changed, view doesnt know automatically, for it, need to perform the Refresh.
+
+## Types of Refresh
+
+### Complete Refresh
+- Delete all stored data and rebuilds it.
+
+### Fast Refresh
+- Update only changes rows.
+
+### On-Demand Refresh
+- Refreshed only when you explicitly request it.
+
+```sql
+EXEC DBMS_MVIEW.REFRESH('EMP_MV');
+```
+
+### On Commit Refresh
+- Whenever you execute `COMMIT;`, Oracle automatically refresh the materialized view.
