@@ -37,9 +37,9 @@ export class EmployeeComponent {
 ```
 
 - Use case:
-    - Services
-    - HttpClient (Will see in future, once it will be cover, remove from here)
-    - Router (Will see in future, once it will be cover, remove from here)
-    - ActivatedRoute (Will see in future, once it will be cover, remove from here)
-    - FormBuilder (Will see in future, once it will be cover, remove from here)
-    - CustomServices (Will see in future, once it will be cover, remove from here)
+    - **Services**
+    - **HttpClient** (Will see in future, once it will be cover, remove from here)
+    - **Router** (Will see in future, once it will be cover, remove from here)
+    - **ActivatedRoute** (Will see in future, once it will be cover, remove from here)
+    - **FormBuilder** (Will see in future, once it will be cover, remove from here)
+    - **CustomServices** (Will see in future, once it will be cover, remove from here)

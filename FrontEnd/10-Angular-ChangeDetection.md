@@ -24,10 +24,19 @@ name = "Vrajesh"
 ## OnPush
 - With OnPush, only component that should be check is checked by the Angular instead of all the component checking.
 
+```ts
+@Component({
+    selector: 'app-employee',
+    templateUrl: './employee.component.html',
+    changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EmployeeComponent {}
+```
+
 - `OnPush`  component is checkd when:
     - `@Input` **reference** was changed.
     - Event occurs inside the component (button click).
-    - Observable emit the value.
+    - **Observable** emit the value.
     - Manually trigger `ChangeDetectorRef`.
 
 ```java
@@ -37,14 +46,16 @@ name = "Vrajesh"
 ```
 
 ## Manual Change Detection (ChangeDetectorRef)
+- Use mainly while working with `OnPush`
 
 ```java
 constructor(private cdr: ChangeDetectorRef){}
 
 updateName(){
+    // This is not handled by OnPush, so we can use ChangeDetectorRef for manual change detection
     this.name = "Vrajesh";
 
-    this.cdr.detectChanges();   // Updates the compooent immedietly.
+    this.cdr.detectChanges();   // Updates the component immedietly.
     
     this.cdr.markForCheck();    // Mark this component as a next change detection cycle.
 }
@@ -52,7 +63,7 @@ updateName(){
 
 - `detectChanges()` is prefrerred over a reference change of `@Input` variable, because change the reference everytime is costly.
 
-- If any third party library chanhe the data, then we can use it.
+- If any third party library change the data, then we can use it.
 
 ```java
 thirdParthLibrary.onData(data => {
