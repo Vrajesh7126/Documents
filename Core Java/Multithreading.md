@@ -8,27 +8,27 @@
 
 ### start() vs run()
 
-- `start()` -> JVM create a new Thread and call run() internally.
+- `start()` -> JVM create a new Thread and call run() internally. It transit the thread into a state where it can be scheduled for execution.
 - `run()` -> Normal method call.
 
 ## Thread Lifecycle
 
-NEW : Thread object created but not started
+**NEW** : Thread object created but not started
 ```java
-Thread t = nw Thread(); // NEW
+Thread t = new Thread(); // NEW
 ```
 
-RUNNABLE : Ready to run, waiting for the CPU
+**RUNNABLE** : Ready to run, waiting for the CPU
 ```java
 t.start();  // RUNNABLE
 ```
 
-RUNNING : Start executing when run() run
+**RUNNING** : Start executing when run() executes
 ```java
 run();  // RUNNING
 ```
 
-BLOCKED : 
+**BLOCKED** : Waiting to aquire a monitor lock
 ```java
 synchronized(obj){
 
@@ -37,37 +37,46 @@ synchronized(obj){
 lock.lock();
 ```
 
-WAITING : Thread wait until another thread wakes it.
+**WAITING** : Thread wait until another thread wakes it.
 ```java
-wait();  // WAITING
-join();
+wait(); // Waiting
+join(); // Wait until another thread finish it's execution
 ```
 
-TIMED_WAITING : Thread waits for a specific time
+**TIMED_WAITING** : Thread waits for a specific time
 ```java
-sleep();
+// sleep for a sec
+sleep(1000);
+
+// wait for the 1 second or 
+// another thread calls join() or 
+// another thread interrupts it
 wait(1000);
+
+// wait for 1 sec or 
+// another thread finish it's execution if execution time is less than 1 sec or 
+// some another thread interrupt it
 join(1000);
 ```
 
-TERMINATED : Thread finish it's execution
+**TERMINATED** : Thread finish it's execution
 ```java
 run();  // Execution over
 ```
 
 ### start() vs run()
-`start()` : Create a new thread, JVM calls run()
-`run()` :  Executed in current thread
+- `start()` : Create a new thread, JVM calls run()
+- `run()` :  Executed in current thread
 
-- call start() twice, it gives IllegalThreadStateException exception, Because one thread object can start only once.
+- call start() twice, it gives `IllegalThreadStateException` exception, Because one thread object can start only once.
 
 ### sleep()
 
 `sleep()` : Static method of a Thread class, not a t.sleep()
-- must handle InterruptedException while using sleep()
+- must handle `InterruptedException` while using sleep()
 - Why InterruptedException? : Another thread may interrupt sleeping thread.
 
-- `NOTES` : Sleep does not release a lock, Wait release a lock
+- `NOTES` : Sleep does not release a lock, Wait release a lock.
 
 ```java
 try {
@@ -84,6 +93,16 @@ catch(InterruptedException e) {
 t.interrupt();
 ```
 
+- If a thread is not inside the sleep(), wait() or join(), then calling `thread.interrput()` does not throw Interrupted exception, instead java sets interrupt flag true.
+
+```java
+// we can check something like this
+while(!Thread.currentThread().isInterrupted()){
+    // do some work...
+}
+```
+- When Java throws `InterruptedException`, it clears the thread's interrupted status. `interrupted` checks current thread & clear the status.
+
 ### join()
 
 - One thread waits for another thread to finish.
@@ -98,9 +117,11 @@ t.setDaemon(true);
 t.start();
 ```
 
+### Concurrency
+- 1 CPU core switches between tasks very quickly.
+
 ### Parallelism
 - Tasks literally run simultaneously on multiple CPU cores.
-
 
 ## Synchronization
 
@@ -120,7 +141,7 @@ class CriticalPart{
 ```
 
 - Every Java object has Monitor Lock / Intrinsic Lock, synchronized uses that lock.
-- When thread enters Lock acquired, when thread exit Lock released.
+- When thread enters method Lock acquired, when thread exit Lock released.
 
 
 ### Synchronized Block
@@ -128,13 +149,53 @@ class CriticalPart{
 - Instead of whole method
 
 ```java
-synchronized(this) {    // Current object becomes a lock
+// Current object becomes a lock
+synchronized(this) {
     count++;
 }
+```
 
+### Object lock
+- Why to use Object use even Iif I have a synchronized method or synchronized (this) block : 
+
+```java
+// creates a separate private lock object
 Object lock = new Object();
-synchronized(lock) {    // creates a separate private lock object
+synchronized(lock) {
     count++;
+}
+```
+
+#### Importance of the Object lock :
+
+```java
+// BAD : even If print and increment will not affect each others, we have used the same object lock
+class Counter{
+    count = 0;
+    public synchronized void print(){
+        System.out.println(counter);
+    }
+
+    public void increment(){
+        synchronized (this){
+            counter++;
+        }
+    }
+}
+
+// GOOD : Use seperate lock, because they are not affect each others
+class Counter{
+    private final Object countLock = new Object();
+
+    public synchronized void print(){
+        System.out.println(counter);
+    }
+
+    public void increment(){
+        synchronized (counterLock){
+            counter++;
+        }
+    }
 }
 ```
 
@@ -154,25 +215,26 @@ wait()
 notify()
 notifyAll()
 ```
-- Must be called inside the synchronized method, otherwise throws IllegalMonitorStateException exception.
+- Must be called inside the synchronized method, otherwise throws `IllegalMonitorStateException` exception.
 - Used for inter thread communication (One thread communicating with another thread)
 - Part of java.lang.Object (Not a Thread class)
 
 ### wait()
 
-- Thread releases lock and waits.
+- Thread **releases lock** and waits.
+- There is a logical reason behind to release a lock while call wait() is, If wait() is release a lock then another thread can call notify and wait()'s ahead execution will be happens, otherwise it will not.
 - wait() must be inside the synchronized block.
-- Thread goes to WAITING state.
-- Can wake up a WAITING thread of notify(), notifyAll() & interrupt() (thread gets InterruptedException)
+- Thread goes to **WAITING** state.
+- Can wake up a WAITING thread of **notify()**, **notifyAll()** & **interrupt()** (thread gets `InterruptedException`)
 - wait(5000) (Timeout into the thread)
-- Spurious Wakeup(rarely JVM wakes up a WAITING thread, so we have used while (condition) {wait(); })
+- Spurious Wakeup (rarely JVM wakes up a WAITING thread, so we have used while (condition) {wait(); })
 
 ### notify() 
 
 - Wakes one waiting thread.
 - If multiples of WAITING thread, JVM decides which thread to wake.
-- Thread goes to RUNNABLE state.
-- notify() Does NOT Immediately Run Thread, it only moves thread from WAITING to BLOCKED/RUNNABLE. Actual execution depends on scheduler, lock availability.
+- Thread goes to **RUNNABLE** state.
+- notify() does NOT Immediately Run Thread, become eligible to compete for the lock, it makes a thread to it only moves thread from WAITING to BLOCKED/RUNNABLE. Actual execution depends on scheduler, lock availability.
 
 ### notifyAll()
 
@@ -183,9 +245,11 @@ notifyAll()
 ### interrupt()
 
 - Another thread interrupts the waiting thread.
-- If the thread was inside wait(), it immediately wakes up & throws InterruptedException.
+- If the thread was inside wait(), it immediately wakes up & throws `InterruptedException`.
 
 ### Producer-Consumer problem
+
+- This is for a single producer-consumer problem.
 
 ```java
 class Buffer {
@@ -194,7 +258,7 @@ class Buffer {
 
     public synchronized void produce(int value) throws InterruptedException {
 
-        while (hasData) {
+        while (hasData) {   // prevent from the suspious wakeup
             wait();
         }
 
@@ -208,7 +272,7 @@ class Buffer {
 
     public synchronized void consume() throws InterruptedException {
 
-        while (!hasData) {
+        while (!hasData) {   // prevent from the suspious wakeup
             wait();
         }
 
@@ -255,12 +319,60 @@ public class Main {
 ```
 
 ## Condition
-- Using `wait()`, All threads wait in the same room.
-- Some threads wait for “data available”, Some wait for “space available”, notify() may wake the wrong thread.
-- Using `Condition`, you can create multiple waiting rooms.
-- Can signal a specific waiter.
-- Consumers wait in dataAvailable, producers wait in spaceAvailable
+- Use with `ReentrantLock`
+- Instead of having one waiting queue per object, you can create a multiple waiting queues.
+- Priblem with `wait()` and `notify()` :
 
+```java
+Object lock = new Object();
+
+synchronzed(lock){
+    lock.wait();
+}
+```
+
+```java
+Object(lock)
+     |
+     +-- Waiting Queue
+         Producer-1
+         Producer-2
+         Consumer-1
+         Consumer-2
+```
+
+- When you call `lock.notify()`, we can not choose weather it's producer or consumer.
+
+- Solution : `Condition`
+
+```java
+Lock lock = new ReentrantLock();
+
+Condition notFull = lock.newCondition();
+Condition notEmpty = locl.newCondition();
+```
+
+```java
+ReentrantLock
+      |
+      +-- notFull Queue
+      |      Producer-1
+      |      Producer-2
+      |
+      +-- notEmpty Queue
+             Consumer-1
+             Consumer-2
+```
+
+- Now you can wakeup exactly what we want :
+
+```java
+notEmpty.signal();  // Wake a consumer
+
+notFull.signal();   // Wake a producer
+```
+
+- Another Example :
 
 ```java
 Lock lock = new ReentrantLock();
@@ -342,10 +454,16 @@ synchronized(lock2) {
 
 ### Condition required on Deadlock
 
-- Mutual Exclusion : A resource can be used by only one process at a time.
-- Hold and Wait : Thread holds one lock while waiting another.
-- No Preemption : Resources cannot be forcefully taken away.
-- Circular Wait : Processes wait for each other in a circular chain.
+- Mutual Exclusion : 
+    - Means only one thread can access the lock.
+    - Without mutual exclusion, there would be no waiting, no Deadlock.
+- Hold and Wait : 
+    - Thread holds one lock and waiting for an another lock.
+- No Preemption : 
+    - Can not forcefully take lock away from the thread.
+    - Only thread that owns a lock can release it. 
+- Circular Wait : 
+    - A thread holds lock-1 and waiting for lock-2 and another thread holds lock-2 and waiting for lock-1.
 
 ### How to prevent a deadlock
 
@@ -417,8 +535,8 @@ public class MyClass {
 - Immutable Objects : Best thread-safe objects, it's not changed after creation
 
 ### Fail-Fast vs Fail-Safe
-- Fail-Fast : Stop immediately on problem. Ex : ArrayList stops work when add during iteration
-- Fail-Safe : Continue safely despite problem. Ex : CopyOnWriteArrayList even if add during iteration
+- Fail-Fast : Stop immediately on problem instead of continuing with the invalid data. Ex : ArrayList stops work when add during iteration
+- Fail-Safe : Instead of stopping when something change, Continue safely without affecting the current operation. Ex : CopyOnWriteArrayList even if add during iteration
 
 ### ThreadLocal
 - Each thread gets separate variable copy.
@@ -719,15 +837,15 @@ AtomicIntegerArray	    // Atomic array
 AtomicStampedReference	// Solves ABA problem
 LongAdder	            // High-performance counter
 ```
-- CAS = If current value == expected value then update, else retry
+- **CAS** : If current value == expected value then update, else retry
 - ex : count.compareAndSet(5, 6)
 - Good for single variable operation, counter or flags.
 - ABA Problem = Thread-1 reads A, Thread-2 changes A -> B -> A, Now Thread-1 checks and it still A, CAS thinks nothing changed, but actually value changed twice.
 - Use AtomicStampedReference to solve ABA problem. A v1 -> B v2 -> A v3, now CAS check value + version.
-- LongAdder = Used for very high concurrent counters.
-- AtomicInteger uses one single variable, All threads fight on same counter. LongAdder creates multiple internal counters, then combine result.
-- volatile = When want to see latest updated value. use at boolean flags, status variables, stop/start signals, can not use with counters(because it provides volatility not atomicity so not provide a thread safe operations) for it can use AtomicInteger.
-- AtomicReference = CAS works If whole object ref was changes, it's not protect internal fields changes.
+- **LongAdder** = Used for very high concurrent counters.
+- **AtomicInteger** uses one single variable, All threads fight on same counter. LongAdder creates multiple internal counters, then combine result.
+- **Volatile** = When want to see latest updated value. use at boolean flags, status variables, stop/start signals, can not use with counters(because it provides volatility not atomicity so not provide a thread safe operations) for it can use AtomicInteger.
+- **AtomicReference** = CAS works If whole object ref was changes, it's not protect internal fields changes.
 - AtomicReference use with Immutable objects.
 
 ## Concurrent Collections
@@ -831,7 +949,7 @@ public static ExecutorService newCachedThreadPool() {
 - Returns value
 - Can throw checked exception
 - If call() throw an exception, result.get() throws `ExecutionException`
-- Can avoid waiting forever by result.get(2, TimeUnit.SECONDS), If task not complete If task not completed in 2 sec `TimeoutException` comes.
+- Can avoid waiting forever by result.get(2, TimeUnit.SECONDS), If task not completed in 2 sec `TimeoutException` comes.
 - Callable works with a ExecutorService, because Thread class understands Runnable only, There is NO `new Thread(callable)`. Thread class does not support return value, Future, checked exception handling.
 
 ```java
@@ -900,6 +1018,8 @@ future.get();
 future.join(); 
 
 // thenApply : Transforms result
+// After submit, If you want to get the result, we need to do result.get() which is blocking operation.
+// But by using thenApply, it becomes asynchronously
 CompletableFuture<String> future =
     CompletableFuture
         .supplyAsync(() -> "java")
@@ -981,7 +1101,7 @@ CompletableFuture.supplyAsync(() -> "Java")
 CompletableFuture.supplyAsync(...)
 //Without giving executor, Java automatically uses
 ForkJoinPool.commonPool()
-// This is shared internal thread pool anaged by JVM
+// This is shared internal thread pool managed by JVM
 
 // Custom Executor : You can provide your own thread pool
 ExecutorService executor = Executors.newFixedThreadPool(5);
