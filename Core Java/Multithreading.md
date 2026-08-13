@@ -538,9 +538,6 @@ public class MyClass {
 - Fail-Fast : Stop immediately on problem instead of continuing with the invalid data. Ex : ArrayList stops work when add during iteration
 - Fail-Safe : Instead of stopping when something change, Continue safely without affecting the current operation. Ex : CopyOnWriteArrayList even if add during iteration
 
-### ThreadLocal
-- Each thread gets separate variable copy.
-
 ## Lock Interface (Advanced Synchronization)
 
 - Old -> synchronized
@@ -684,8 +681,8 @@ Semaphore semaphore = new Semaphore(2); // 2 Threads allowed to use a resource s
 Runnable task = () -> {
     try {
         semaphore.acquire();
-        System.out.println(Thread.currentThread().getName() + " running");
 
+        System.out.println(Thread.currentThread().getName() + " running");
         Thread.sleep(2000);
     } catch (InterruptedException e) {
         e.printStackTrace();
@@ -694,11 +691,36 @@ Runnable task = () -> {
     }
 };
 ```
+- Semapore is not tied to ownership, Thread A can `semaphore.aquire()` & Thread B can do `semaphore.release()`.
+- Semaphore is international, it represents permits, not ownership of a monitor by one specific thread.
+- If no permit, the thread waits at `semaphore.acquire()` & it throws `InterruptedException` if interrupted while waiting.
+- Can avoid blocking by `semaphore.tryAquire()` or `semaphore.tryAquire(2, TimeUnit.SECONDS)`
+
+```java
+if (semaphore.tryAquire()) {
+    try {
+        // got permit
+    } finally {
+        semaphore.release();
+    }
+}
+else {
+    // no permit available
+}
+```
+
+- Fair Semaphore : Enable fair ordering among waiting threads.
+```java
+Semaphore semaphore = new Semaphore(3, true);
+```
+
+### ReentrantLock vs Semaphore(1)
+- `ReentrantLock` has **ownership** and **reentrancy**.
+- `Semaphore(1)` does **not have the same ownership semantics** and not allows reentnancy(**only 1 permit** is allowed).
 
 ## CountDownLatch
-- Used when, One or more threads wait until tasks complete.
+- Used when, One or more threads wait until specific number of tasks are completed.
 - Once 0, latch is finished, cannot reuse it.
-- `await()` puts the thread into a waiting/blocking state, and another thread can interrupt it using `thread.interrupt()`, and it throws `InterruptedException`
 
 ```java
 latch.countDown();  // Reduce count by 1
@@ -741,9 +763,26 @@ public class Main {
 }
 ```
 
+- Good Practice :
+```java
+Runnable worker = () -> {
+    try{
+        doTask();
+    }
+    finally{
+        // Even if doTask() completes or throw an exception, it always countDown
+        latch.countDown();
+    }
+}
+```
+
+- `latch.await()` puts the thread into a waiting/blocking state, and another thread can interrupt it using `thread.interrupt()`, and it throws `InterruptedException`.
+- `latch.await(5, TimeUnit.SECONDS)` is a times await.
+
 - Real use case : 
-- DB connected, cache loaded, services ready
-- Parallel processing, Run tasks in parallel and wait for all results
+    - DB connected, cache loaded, services ready
+    - Parallel processing, Run tasks in parallel and wait for all results
+    - Start gate : By `CountDownLatch startGate = new CountDownLatch(1);`, many workers call `startGate.await()` then some coordinator calls `startGate.countDown()`, now all waiting workers can proceed
 
 ## CyclicBarrier
 - Used when Multiple threads wait for each other.
@@ -883,7 +922,7 @@ ExecutorService service = Executors.newFixedThreadPool(5);  // Creates 5 reusabl
 | execute()     | submit()            |
 | ------------- | ------------------- |
 | Runnable only | Runnable + Callable |
-| No return     | Returns Future      |
+| No return     | Returns `Future`      |
 | Less flexible | More flexible       |
 
 
@@ -944,13 +983,14 @@ public static ExecutorService newCachedThreadPool() {
 
 ### Runnable
 - No return value
+- Can not throw **Checked Exception**
 
 ### Callable
 - Returns value
-- Can throw checked exception
+- Can throw **Checked exception**
 - If call() throw an exception, result.get() throws `ExecutionException`
-- Can avoid waiting forever by result.get(2, TimeUnit.SECONDS), If task not completed in 2 sec `TimeoutException` comes.
-- Callable works with a ExecutorService, because Thread class understands Runnable only, There is NO `new Thread(callable)`. Thread class does not support return value, Future, checked exception handling.
+- Can avoid waiting forever by `result.get(2, TimeUnit.SECONDS)`, If task not completed in 2 sec `TimeoutException` comes.
+- **Callable works with a ExecutorService**, because Thread class understands Runnable only, There is NO `new Thread(callable)`. Thread class does not support return value, Future, checked exception handling.
 
 ```java
 Callable<Integer> task = () -> {
@@ -965,7 +1005,7 @@ Future<Integer> result = service.submit(task);
 // task completed or not
 result.isDone();
 
-// cancel task
+// cancel task, then result.get() throws CancelllationException
 result.cancel(true);
 
 // wait for 5 seconds and print 10
@@ -991,10 +1031,11 @@ boolean finished = executor.awaitTermination(5, TimeUnit.SECONDS);
 ```
 
 ## ForkJoinPool
-- Pending...
+- Designed for parallel tasks that can be split into smaller subtasks.
 
 ## CompletableFuture
 
+- `Future` is not provide the composition, so CompletableFuture was introduced.
 - Used for async tasks, API calls, microservices.
 - Can chain tasks, combine tasks, run non-blocking code
 
@@ -1003,54 +1044,71 @@ boolean finished = executor.awaitTermination(5, TimeUnit.SECONDS);
 CompletableFuture.runAsync(() -> {
     System.out.println("Task Running");
 });
+```
 
+```java
 // supplyAsync : Used when needs a return value
 CompletableFuture<String> future =
     CompletableFuture.supplyAsync(() -> {
         return "Java";
     });
+```
 
+```java
 // Get result
 // Could throw InterruptedException or ExecutionException and need to handle
 future.get();
 
 // No checked exception handling required, Throws runtime exception (CompletionException) internally
 future.join(); 
+```
 
+```java
 // thenApply : Transforms result
-// After submit, If you want to get the result, we need to do result.get() which is blocking operation.
-// But by using thenApply, it becomes asynchronously
+// It takes Function as an input
 CompletableFuture<String> future =
-    CompletableFuture
-        .supplyAsync(() -> "java")
+    CompletableFuture.supplyAsync(() -> "java")
         .thenApply(s -> s.toUpperCase());   // JAVA
+```
 
+```java
 // thenApplyAsync : different thread from thread pool
-CompletableFuture
-    .supplyAsync(() -> "Java")
+// It takes Function as an input
+CompletableFuture.supplyAsync(() -> "Java")
     .thenApplyAsync(s -> s.toUpperCase());  // Run in diff thread
+```
 
+```java
 // thenAccept : Consume result
-// no return.
+// no return
+// Takes Consumer as an input
 future.thenAccept(System.out::println);
+```
 
+```java
 // thenRun : run another task after completion
 // No input, No output.
+// Takes Runnable as an input
 future.thenRun(() -> {
     System.out.println("Done");
 })
+```
 
+```java
 // thenCompose : One async task completes and another starts.
+// Flattens Future<Future<T>> to Future<T>
+// Takes Future as an input
 CompletableFuture<String> user =
     CompletableFuture.supplyAsync(() -> "Vrajesh")
-        // Use name into second CompletableFuture and it automatically flattens Future<Future<T>> to Future<T>
         .thenCompose(name ->
             CompletableFuture.supplyAsync(() ->
                 name + " Orders"
             )
         )
+```
 
-// thenCombine : Combine 2 independent futures.
+```java
+// thenCombine : Both can proceed independently, then their results are combined
 CompletableFuture<String> f1 =
     CompletableFuture.supplyAsync(() -> "Java");
 
@@ -1059,13 +1117,21 @@ CompletableFuture<String> f2 =
 
 CompletableFuture<String> result =
     f1.thenCombine(f2, (a,b) -> a + " " + b);
+```
 
+```java
 // allOf : Wait for all tasks to be complete
-CompletableFuture.allOf(f1, f2).join();
+// Return Void
+CompletableFuture<Void> all = CompletableFuture.allOf(f1, f2).join();
+```
 
+```java
 // anyOf : Wait for first completed task
-CompletableFuture.anyOf(f1, f2);
+// Return Object, because the participating futures can have different types
+CompletableFuture<Object> fastest = CompletableFuture.anyOf(f1, f2);
+```
 
+```java
 // exceptionally : Handles exception
 CompletableFuture.supplyAsync(() -> {
     int x = 10 / 0;
@@ -1073,8 +1139,11 @@ CompletableFuture.supplyAsync(() -> {
 }).exceptionally(ex -> {
     return -1;
 });
+```
 
-// handle: handle both Success and Failure
+```java
+// handle: handle receives both result & exception
+// Transform based on success/failure
 CompletableFuture<Integer> future =
     CompletableFuture.supplyAsync(() -> 10/0)
     .handle((result, ex) -> {
@@ -1086,17 +1155,18 @@ CompletableFuture<Integer> future =
 
         return result;
     });
+```
 
+```java
 // whenComplete : Used only for observing or logging, does not change the result
+// NOTE : handle can modify result, whenComplete not
 CompletableFuture.supplyAsync(() -> "Java")
     .whenComplete((res, ex) -> {
-
         System.out.println(res);
-
     });
+```
 
-// NOTE : handle can modify result, whenComplete not
-
+```java
 // Default Thread Pool : When you do 
 CompletableFuture.supplyAsync(...)
 //Without giving executor, Java automatically uses
@@ -1107,7 +1177,9 @@ ForkJoinPool.commonPool()
 ExecutorService executor = Executors.newFixedThreadPool(5);
 
 CompletableFuture.supplyAsync(task, executor);
+```
 
+```java
 // Supplier : Functional Interface, represents give me some value
 Supplier<String> s = () -> "Java";
 ```
@@ -1196,7 +1268,14 @@ ThreadLocal<String> user = new ThreadLocal<>();
 
 user.set("Vrajesh");    // In Thread - 1
 user.get() -> Vrajesh   // Thread - 1
+
 user.get() -> null      // Thread - 2
+```
+
+```java
+// With Default Initial value
+ThreadLocal<String> local = ThreadLocal.withInitial(() -> "Default");
+local.get() // Provides the value Default
 ```
 
 - How it internally works :
@@ -1220,7 +1299,35 @@ user -> "Vrajesh"
 user.get();
 ```
 
-- Should not use ThreadLocal with vrtual Thread, because millions of Virtual Threads is possible and it results high memory usage.
+- Should not use ThreadLocal with virtual Thread, because millions of Virtual Threads is possible and it results high memory usage.
 
+### Trap
+```java
+ExecutorService executor = Executors.newFixedThreadPool(1);
+
+ThreadLocal<String> user = new ThreadLocal<>();
+
+// Task 1
+executor.submit(() -> {
+    user.set("Vrjesh");
+})
+
+executor.submit(() -> {
+    System.out.println(user.get()); //Vrajesh
+})
+```
+- Even If we have submitted an another task and then print the user, then it could be print "Vrajesh" because Thread was reused. ThreadLocal belongs to the thread to the task.
+- SOlution : If we set a ThreadLocal value, remove it at the end.
+
+```java
+try{
+    user.set("Vaghasiya");
+
+    // work
+}
+finally{
+    user.remove();
+}
+```
 
 ## Structured Concurrency
