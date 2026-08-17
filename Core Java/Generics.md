@@ -22,7 +22,7 @@
 
 # Generic Classes
 - A class that can work with any data type without rewriting code.
-- A class whose data type is decided when the object is created, giving type safety and removing explicit casting.
+- A class whose data type is decided when the object is created, giving type safety and removing explicit casting while getting values.
 
 ```java
 class Box<T> {
@@ -137,6 +137,27 @@ runTask(myTask);
 public static <T extends Comparable<T>> T max(T a, T b) {
     return a.compareTo(b) > 0 ? a : b;
 }
+
+class Student implements Comparable<Student> {
+
+    int age;
+
+    Student(int age) {
+        this.age = age;
+    }
+
+    @Override
+    public int compareTo(Student other) {
+        return this.age - other.age;
+    }
+}
+
+Student s1 = new Student(20);
+Student s2 = new Student(25);
+
+Student older = max(s1, s2);
+
+System.out.println(older.age);
 ```
 
 3. Multiple Bounds
@@ -155,8 +176,8 @@ You need:
 ## 1. **Unbounded Wildcard (?)** :
 - A wildcard represents an unknown type.
 
-T = "I want to remember and use the type."
-? = "I don't care what the type is."
+- T = "I want to remember and use the type."
+- ? = "I don't care what the type is."
 
 Example Diff :
 
@@ -211,36 +232,134 @@ Use Case :
 - If `<T>` only then it replace `T` with `Object`.
 
 # Generic Inheritance
-- Generic Inheritance exists mainly so generic classes can be specialized and reused (Box<T> → StringBox).
 
-Example :
+## What is it?
 
-```java
-class Box<T> {
-    T value;
-}
-
-// T fixed as String
-class StringBox extends Box<String> {
-}
-
-StringBox box = new StringBox();
-// equals to
-Box<String> box = new StringBox();
-```
-
-Use Case :
-- Create a generic base class.
-- Create specialized child classes.
-
-Real Example :
+Generic Inheritance means a **child class inherits a generic parent class** by specifying the actual type.
 
 ```java
-class Repository<T> {}
+class Repository<T> {
+    void save(T obj) { }
+}
 
-class UserRepository extends Repository<User> {}
-class EmployeeRepository extends Repository<Employee> {}
+class UserRepository extends Repository<User> { }
+
+class EmployeeRepository extends Repository<Employee> { }
 ```
+
+---
+
+## What problem does it solve?
+
+It **eliminates code duplication**.
+
+Without Generic Inheritance:
+
+```java
+class UserRepository {
+    void save(User user) { }
+    void delete(User user) { }
+}
+
+class EmployeeRepository {
+    void save(Employee employee) { }
+    void delete(Employee employee) { }
+}
+```
+
+The same methods (`save()`, `delete()`, etc.) have to be written again and again for every entity.
+
+With Generic Inheritance:
+
+```java
+class Repository<T> {
+    void save(T obj) { }
+    void delete(T obj) { }
+}
+```
+
+The common logic is written only once.
+
+---
+
+## How does it work?
+
+The generic parent class contains the common implementation.
+
+```java
+class Repository<T> {
+    void save(T obj) { }
+}
+```
+
+Each child specifies what `T` should be.
+
+```java
+class UserRepository extends Repository<User> { }
+// T = User
+
+class EmployeeRepository extends Repository<Employee> { }
+// T = Employee
+```
+
+The compiler automatically replaces `T` with the specified type.
+
+For example:
+
+- `Repository<User>` → `save(User obj)`
+- `Repository<Employee>` → `save(Employee obj)`
+
+---
+
+## Why do we still create UserRepository and EmployeeRepository?
+
+Because they can contain **entity-specific methods** while reusing all the common methods.
+
+```java
+class UserRepository extends Repository<User> {
+
+    User findByEmail(String email) {
+        // User-specific logic
+    }
+}
+```
+
+So:
+
+- Common methods → Parent (`Repository<T>`)
+- Specific methods → Child (`UserRepository`, `EmployeeRepository`)
+
+---
+
+## Real-world use case
+
+Spring Data JPA uses Generic Inheritance.
+
+```java
+interface UserRepository extends JpaRepository<User, Long> {
+}
+```
+
+Without writing any code, you automatically get:
+
+- save()
+- findById()
+- findAll()
+- delete()
+
+because they are already implemented in the generic parent interface.
+
+---
+
+## Easy way to remember
+
+- **Generic Parent** → Contains common logic.
+- **Child Class** → Specifies the actual type (`User`, `Employee`, etc.).
+- **Benefit** → Write common code once, reuse it everywhere, and maintain type safety.
+
+### Interview One-Liner
+
+> Generic Inheritance allows a child class to reuse a generic parent's common logic by specifying the actual type, reducing code duplication while providing compile-time type safety.
 
 # Raw Type
 - Using a Generic class without specifying a type parameter.

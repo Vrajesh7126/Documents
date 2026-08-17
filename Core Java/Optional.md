@@ -309,11 +309,9 @@ Very common in Spring applications.
 ## Example
 
 ```java
-Optional<String> name =
-    Optional.of("vrajesh");
+Optional<String> name = Optional.of("vrajesh");
 
-Optional<String> upper =
-    name.map(String::toUpperCase);
+Optional<String> upper = name.map(String::toUpperCase);
 ```
 
 Result:
@@ -329,8 +327,7 @@ Optional[VRAJESH]
 ```java
 Optional<User> user = repo.findById(1);
 
-Optional<String> name =
-    user.map(User::getName);
+Optional<String> name = user.map(User::getName);
 ```
 
 ### What Happens?
@@ -453,8 +450,7 @@ repo.findById(1)
 Spring Data JPA:
 
 ```java
-Optional<User> user =
-    userRepository.findById(id);
+Optional<User> user = userRepository.findById(id);
 ```
 
 Common pattern:

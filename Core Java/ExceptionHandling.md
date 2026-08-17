@@ -22,6 +22,7 @@
 
 ## Checked Exception
 - These are exceptions that Java forces you to handle.
+- Checked exceptions represent situations that are often outside your program's control (e.g., file not found, database unavailable, network issues), so Java forces you to think about handling them.
 - Handle it using try-catch OR throws.
 
 ## Unchecked Exception
@@ -30,6 +31,7 @@
 
 # Exception Propagation
 - When a method doesn't handle an exception, Java automatically passes it to the caller method.
+- If the exception not handles and it reaches upto main() methos, the JVM will handle it and terminate the program and print the exception stack trace.
 
 ```java
 public class Test {
@@ -145,7 +147,7 @@ try (Resource1 r1 = new Resource1(); Resource2 r2 = new Resource2()) {
 // LIFO (Last In First Out)
 ```
 
-- Objects implementing AutoCloseable or Closeable interface can be used in try-with-resources statement.
+- Objects implementing `AutoCloseable` or `Closeable` interface can be used in try-with-resources statement.
 
 Example :
 
@@ -179,18 +181,14 @@ try(MyResource r = new MyResource()) {
 ```
 
 ## Exception Scenarios
-- If exception occurs in try block, then catch block will be executed and then close() method will be called.
+- If exception occurs in try block, then close() method will be called and catch block will be executed.
 
 ```java
-try(FileReader fr = new FileReader("abc.txt")) {
-    int x = 10 / 0;
-}
-```
-
-```java
-ArithmeticException
-close()
-exception propagates to catch block
+Exception occurs
+       ↓
+close()      ✅ Release the resource immediately
+       ↓
+catch()      ✅ Now handle the exception
 ```
 
 # Suppressed Exceptions

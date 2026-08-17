@@ -13,12 +13,42 @@
 
 ### ConcurrentHashMap
 - Not allow null key or value.
-- Why null key not allowed : null does not have hashcode(), and special handling for a null key whould complicated thread-safe design.
-- Why null value not allowed : If map.get(null) retuns null, Is that means value is null or Key is absent ? so to remove this ambiguity, ConcurrentHashMap does not allows a null value.
+- Why null key not allowed : Special handling for a null key whould complicated thread-safe design.
+- Why null value not allowed : Because in a multi-threaded environment, null would make it impossible to know whether a key is actually missing or another thread changed the map, so to avoid this ambiguity, null values are not allowed.
 - Thread Safe version of HashMap.
 - Java 7 and below -> Segment Locking (Segment = Bunch of the bin)
-- Java 8 and above -> CAS (Compare & swap) + Synchronized per bin locking
-- Reads are non blocking.
+- Java 8 and above -> CAS (Compare & swap) + Synchronized per bin locking (If the bucket is empty (null), use CAS. Otherwise, use bin locking for put() operations).
+- Reads are non blocking, why :
+
+```java
+// Suppose the map contains:
+1 -> A
+
+// Now Thread 1 executes:
+map.put(2, B);
+```
+- Step 1: Create the new node (2, B) completely in memory (No other thread can see it yet.)
+- Step 2: Link the new node into the bucket (Now other threads can see it.)
+- At the same time, Thread 2 calls:
+```java
+map.get(2);
+```
+
+There are only two possibilities:
+
+```java
+Before Step 2 → null (the key isn't visible yet)
+After Step 2 → "B"
+```
+- Because The bucket reference is volatile.
+- It can never see something like:
+```java
+2 -> ?
+// or
+2 -> partially created object
+```
+
+- because the node is published only after it is fully constructed.
 
 ### HashTable
 - Thread safe.
@@ -69,6 +99,27 @@ private transient volatile Object[] array;
 ## Vector
 - Lock on Read & Write.
 - Lock on entire List
+
+# Queue
+```java
+Queue (Interface)
+│
+├── PriorityQueue (Class)
+├── ConcurrentLinkedQueue (Class)
+├── Deque (Interface)
+│     ├── ArrayDeque (Class)
+│     └── LinkedList (Class)
+│
+└── BlockingQueue (Interface)
+      ├── ArrayBlockingQueue
+      ├── LinkedBlockingQueue
+      ├── PriorityBlockingQueue
+      └── DelayQueue
+```
+
+## PriorityQueue
+
+## ConcurrentLinkedQueue
 
 ## BlockingQueue
 

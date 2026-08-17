@@ -782,7 +782,7 @@ Runnable worker = () -> {
 - Real use case : 
     - DB connected, cache loaded, services ready
     - Parallel processing, Run tasks in parallel and wait for all results
-    - Start gate : By `CountDownLatch startGate = new CountDownLatch(1);`, many workers call `startGate.await()` then some coordinator calls `startGate.countDown()`, now all waiting workers can proceed
+    - Start gate : By `CountDownLatch startGate = new CountDownLatch(1);`, many workers call `startGate.await()` then some coordinator calls `startGate.countDown()`, now all waiting workers can proceed.
 
 ## CyclicBarrier
 - Used when Multiple threads wait for each other.
