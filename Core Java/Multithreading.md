@@ -321,7 +321,7 @@ public class Main {
 ## Condition
 - Use with `ReentrantLock`
 - Instead of having one waiting queue per object, you can create a multiple waiting queues.
-- Priblem with `wait()` and `notify()` :
+- Problem with `wait()` and `notify()` :
 
 ```java
 Object lock = new Object();
@@ -1309,7 +1309,7 @@ ThreadLocal<String> user = new ThreadLocal<>();
 
 // Task 1
 executor.submit(() -> {
-    user.set("Vrjesh");
+    user.set("Vrajesh");
 })
 
 executor.submit(() -> {
@@ -1317,7 +1317,7 @@ executor.submit(() -> {
 })
 ```
 - Even If we have submitted an another task and then print the user, then it could be print "Vrajesh" because Thread was reused. ThreadLocal belongs to the thread to the task.
-- SOlution : If we set a ThreadLocal value, remove it at the end.
+- Solution : If we set a ThreadLocal value, remove it at the end.
 
 ```java
 try{
