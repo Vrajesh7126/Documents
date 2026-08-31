@@ -20,9 +20,9 @@ export class EmployeeService {
 - `root` : Create a singleton instance of this class with `providedIn:'root'`
 - Angular class which use the `@Injectable({ providedIn:'root' })` :
     - **Service**
-    - **Guard** (Will see in future, once it will be cover, remove from here)
-    - **Resolver** (Will see in future, once it will be cover, remove from here)
-    - **Interceptor** (Will see in future, once it will be cover, remove from here)
+    - **Guard:** Used by Router internally (Will see in future, once it will be cover, remove from here)
+    - **Resolver:** Used by Router internally (Will see in future, once it will be cover, remove from here)
+    - **Interceptor:** Used by HTTP System internally (Will see in future, once it will be cover, remove from here)
 
 # Dependency Injection (DI)
 - Instead of creating an object yourself, Angular creates it and gives it to you.
@@ -37,7 +37,7 @@ export class EmployeeComponent {
 ```
 
 - Use case:
-    - **Services**
+    - **Service**
     - **HttpClient** (Will see in future, once it will be cover, remove from here)
     - **Router** (Will see in future, once it will be cover, remove from here)
     - **ActivatedRoute** (Will see in future, once it will be cover, remove from here)

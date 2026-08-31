@@ -104,9 +104,5 @@
     - Modern angular supports `@switch`, `@case` & `@default`.
 
 ## Attribute Directive
-- **ngClass**
-- **ngStyle**
-
-## Attribute Directive
 - **ngClass** : Adds a CSS class dynamically.
 - **ngStyle** : Applies CSS style dynamically.

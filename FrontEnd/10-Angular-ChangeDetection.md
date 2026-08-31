@@ -33,7 +33,7 @@ name = "Vrajesh"
 export class EmployeeComponent {}
 ```
 
-- `OnPush`  component is checkd when:
+- `OnPush`  component is checked when:
     - `@Input` **reference** was changed.
     - Event occurs inside the component (button click).
     - **Observable** emit the value.

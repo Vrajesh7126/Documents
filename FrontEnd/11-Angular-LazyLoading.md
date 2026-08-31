@@ -1,5 +1,6 @@
 # Lazy Loading
 - Instead of loading all the component initially, load when needed and visited by the user.
+- Once it loaded lazily then it stores into the browser caches and keeps the loaded code, and If user request after it then it is loaded from this cache, instead of doing the netwrok call again.
 
 - instead of :
 ```ts

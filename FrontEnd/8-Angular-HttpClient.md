@@ -78,7 +78,7 @@ export class EmployeeComponent {
 - Http is respond a one value(Promise is also valid for it), but it still uses Observable to maintain the consistency across the programming model.
 
 ## RxJS Operators
-- Operators are functions that process data emitted by sn Observable.
+- Operators are functions that process data emitted by an Observable.
 - Operators are used with `pipe()`.
 - `pipe()` is a method that chain multiple RxJS operators together.
 - Output of one operator becomes an input of the next.
@@ -122,16 +122,37 @@ this.searchControl.valueChanges
     catchError(error => {
         // Error catched here
 
-        return ([]);
+        return of([]);
     })
 )
 ```
 
-## Subjects
+## Subject
 - A Subject is also an Observable, so you can subscribe to it and receive the data it emits.
 - Subject is both:
     - An Observable (You can subscribe to it and receive its emitted values)
     - An Observer (You can send values to it using next(), error(), or complete())
+
+```ts
+// Subject can provide both Observable and Observer
+const subject = new Subject<string>();
+
+subject.subscribe(value => {
+  console.log(value);
+});
+
+subject.next("Hello");
+
+// If we only want to expose a Observable functionality not Observer's functionality
+const observable: Observable<string> = subject.asObservable();
+
+observable.subscribe(value => {
+  console.log(value);
+});
+
+// Not Possible, it hides next() from the receiver
+observable.next("Hello");
+```
 
 - After emitted a value to the Subject, If some component is subscribe to it, it will not receive the last omitted value.
 

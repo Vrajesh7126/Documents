@@ -256,7 +256,9 @@ Guest
 
 ---
 
-## orElseGet()
+## orElseGet(supplier)
+
+Takes `Supplier` as an input.
 
 Similar to `orElse()`, but creates the default value only when needed.
 

@@ -1,12 +1,15 @@
 # Node.js
-- Allows to runs the Javascrpt outside the browser.
+- Allows to runs the Javascript outside the browser.
 
 # npm
-- Install Angular, libraries
-- Run scripts (`npm start`, `npm run build`, `npm test`)
+- Use npm to **install Angular** and **other packages** your project needs.
+- Angular projects define commands in `package.json`, then you can run them using `npm start`.
+- `npm start` : Start Angular app locally.
+- `npm run build` : Build angular app locally.
+- `npm test` : Runs the project's tests.
 
 # Angular CLI
-- Automates everything
+- Install Angular CLI globally, and then you can use a commands of an angular
 
 ```bash
 npm install -g @angular/cli
@@ -35,7 +38,7 @@ tsconfig.json
 ## package.json
 - Contains **project name**, **project version**, **dependencies**, **scripts**.
 - It tells npm, this packages are required to run the project.
-- Instead of typing `ng server`, you can execute `ng start`
+- Instead of typing `ng server`, you can execute `npm start`
 
 Example :
 
@@ -71,10 +74,11 @@ Example :
 ## node_modules
 - Contains every installed package.
 - Created by `npm install`
+- While executing `npm install`, npm reads `package.json` and and `package-lock.json` for an exact version and download the required dependencies and store it into the `node_modules`.
 
 ## angular.json
 - Main configuration file for the Angular project.
-- Indicates Angular CLI how to build, serve the application.
+- Indicates Angular CLI **how to build**, **serve the application**.
 - When you run `ng build` or `ng serve`, Angular CLI reads this file to know what to do.
 - It contains assets, style, optimization.
 
@@ -96,11 +100,14 @@ Example :
 ```
 
 ## tsconfig.json
-- Typescript config file.
-- This file tells the typescript how to compile and convert into the javascript.
+- Base TypeScript configuration file.
+- Contains the common settings for how TypeScript code should be compiled into JavaScript.
+- Other TypeScript configuration files can inherit these settings.
 
 ## tsconfig.app.json
-- When we run `ng build` or `ng serve`, Angular CLI reads `angular.json`, and `angular.json` tells it which Typescript configuration file to use (Compile all application files, but ignore the test files).
+- TypeScript configuration specifically for the Angular application.
+- Angular CLI uses this file specified by `angular.json` when running `ng build` or `ng serve`.
+- It can inherit settings from `tsconfig.json` and define which application files should be included/excluded.
 
 ## tsconfig.spec.json
 - Settings used for unit tests.
