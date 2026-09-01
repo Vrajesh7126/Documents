@@ -201,3 +201,13 @@ loadEmployee$ = createEffect(() =>
     )
 );
 ```
+
+| Class         | Responsibility                                |
+| ------------- | --------------------------------------------- |
+| **Component** | Dispatch Action and display data              |
+| **Action**    | Describe what happened                        |
+| **Effect**    | Call Spring Boot and dispatch Success/Failure |
+| **Reducer**   | Create the new state                          |
+| **Store**     | Hold application state                        |
+| **Selector**  | Read specific data from the Store             |
+| **Service**   | Perform HTTP calls                            |

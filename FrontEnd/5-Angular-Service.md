@@ -43,3 +43,31 @@ export class EmployeeComponent {
     - **ActivatedRoute** (Will see in future, once it will be cover, remove from here)
     - **FormBuilder** (Will see in future, once it will be cover, remove from here)
     - **CustomServices** (Will see in future, once it will be cover, remove from here)
+
+## inject()
+
+```ts
+@Component({...})
+export class EmployeeComponent{
+    private employeeService = inject(EmployeeService);
+}
+```
+
+It behaves dependency as a class field instead of constructor. It is an alternative of a constructor injection.
+
+Modern approach Angular 14+.
+
+**Real world use case :**
+
+There is no class or constructor at **Funtional Interceptor** or **Functional Guard** or **Functional Resolver** so we can use `inject()`.
+
+```ts
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+    const authService = inject(AuthService);
+
+    // use authService;
+
+    return next(req);
+}
+```
+

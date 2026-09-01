@@ -106,3 +106,33 @@
 ## Attribute Directive
 - **ngClass** : Adds a CSS class dynamically.
 - **ngStyle** : Applies CSS style dynamically.
+
+## @Directive
+
+It is an Angular Decorator used to create a custom behaviour for HTML elements.
+
+Example: Change its background when clicked.
+
+```ts
+import { Directive, ElementRef, HostListener } from '@angular/core';
+
+@Directive({
+  selector: '[appHighlight]'
+})
+export class HighlightDirective {
+
+  constructor(private element: ElementRef) {}
+
+  @HostListener('click')
+  highlight() {
+    this.element.nativeElement.style.backgroundColor = 'yellow';
+  }
+}
+```
+
+```html
+<p appHighlight>
+  Click me!
+</p>
+```
+
