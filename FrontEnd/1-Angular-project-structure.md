@@ -78,26 +78,51 @@ Example :
 
 ## angular.json
 - Main configuration file for the Angular project.
-- Indicates Angular CLI **how to build**, **serve the application**.
+- Indicates Angular CLI **how to build** or **serve the application**.
 - When you run `ng build` or `ng serve`, Angular CLI reads this file to know what to do.
-- It contains assets, style, optimization.
+
+Example :
+
+### angular.json
 
 ```json
 {
   "projects": {
     "my-app": {
       "architect": {
+
         "build": {
-
+          "options": {
+            "outputPath": "dist/my-app",
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "assets": [
+              "src/assets"
+            ],
+            "styles": [
+              "src/styles.css"
+            ]
+          }
         },
-        "serve": {
 
+        "serve": {
+          "options": {
+            "buildTarget": "my-app:build"
+          }
         }
+
       }
     }
   }
 }
 ```
+
+- **build :** This tells Angyular CLI, when someone runs `ng build`, use this instruction.
+- **outputPath :** Put the final built files here.
+- **index :** This is my application's main HTML file.
+- **browser :** This is the TypeScript entry point that starts my Angular application.
+- **styles :** Include this CSS when building the application.
+- **assets :** Copy these static files into the build output.
 
 ## tsconfig.json
 - Base TypeScript configuration file.

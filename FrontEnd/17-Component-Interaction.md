@@ -140,6 +140,18 @@ template!: TemplateRef<any>;
 
 Now `template` refer to that stored HTML.
 
+We can render it programatically as below:
+
+```ts
+import { ViewContainerRef } from '@angular/core';
+
+constructor(private viewContainerRef: ViewContainerRef) {}
+
+ngAfterViewInit() {
+  this.viewContainerRef.createEmbeddedView(this.template);
+}
+```
+
 Angular internally use it at `*ngIf`, `*ngFor` & `*ngSwitch`.
 
 ## ng-container (Grouping Elements Without Adding Extra DOM Nodes)

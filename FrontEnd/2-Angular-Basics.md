@@ -7,6 +7,7 @@
     - Suppose you have routes : `/login`, `/employees`, `profile`
     - When you navigate : `/login` → `/employees`, Angular does not ask the server for new HTML page.
     - Instead, Angular change the URL, Loads the required component at `<router-outlet>` and update the screen.
+    - `index.html` contains `<app-root>` and `AppComponent` associated with `<app-root>` contains the `<router-outlet>`.
     - If Normal routing, Component's javascript is already inside the browser (download when app first loaded), so Angular display it.
     - If Lazy loading, Angular request for the javascript bundle from the server, then load it.
 

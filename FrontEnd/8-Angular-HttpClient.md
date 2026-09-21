@@ -97,6 +97,36 @@ this.http.get<Employee[]>('/employee')
 - **filter** : Filter a value.
 - **tap** : Print a data for a debugging purpose or only see it (Don't allow to modify it).
 
+## takeUntilDestroyed()
+- `takeUntilDestroyed()` is an RxJS operator that automatically unsubscribes from an Observable when the component is destroyed.
+
+Before :
+
+```ts
+ngOnInit() {
+  this.subscription = this.employeeService.getEmployees()
+    .subscribe(data => {
+      console.log(data);
+    });
+}
+
+ngOnDestroy() {
+  this.subscription.unsubscribe();
+}
+```
+
+After :
+
+```ts
+ngOnInit() {
+  this.employeeService.getEmployees()
+    .pipe(takeUntilDestroyed(this))
+    .subscribe(data => {
+      console.log(data);
+    });
+}
+```
+
 ## switchMap
 - When a new value comes, it cancles the previous one and switch to the latest one.
 
@@ -126,6 +156,10 @@ this.searchControl.valueChanges
     })
 )
 ```
+
+## async
+- Solution of manually subscribing and unsubscribing from an Observable in a component.
+- Automatically subscribe when the component is initialized and unsubscribe when the component is destroyed.
 
 ## Subject
 - A Subject is also an Observable, so you can subscribe to it and receive the data it emits.
