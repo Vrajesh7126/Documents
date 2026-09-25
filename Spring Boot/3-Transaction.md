@@ -1,4 +1,18 @@
-Spring rollback for a RunTime Exception, not for Checked Exception.
+Spring rollback for a `RuntimeException` and `Error`, not for `Checked Exception`.
+
+To add rollback for a checked exception, you can use `@Transactional(rollbackFor = IOException.class)`.
+
+Now for below,
+
+```java
+@Transactional(rollbackFor = IOException.class)
+void doSomething() throws IOException {
+    // do something
+    throw new IOException("Checked Exception");
+}
+```
+
+It is getting rolled back.
 
 Spring skips the AOP when a function with an annotation `@Transactional` is called from within the same class.
 
@@ -15,6 +29,107 @@ What happens when one transactional method calls another transactional method?
 | **MANDATORY**     | Join existing TX                         | ❌ Exception                                    |
 | **NEVER**         | ❌ Exception                              | Run normally                                   |
 | **NESTED**        | Create savepoint inside existing TX      | Create new TX                                  |
+
+## REQUIRED
+
+If inner method throws an exception, the outer method will also roll back.
+
+## **REQUIRED_NEW**
+
+```text
+Transaction A starts
+      ↓
+outerMethod()
+      ↓
+A is paused
+      ↓
+Transaction B starts
+      ↓
+innerMethod()
+      ↓
+B commits
+      ↓
+A resumes
+      ↓
+A rolls back
+```
+
+Even If Transaction A rolls back, Transaction B is remains commited.
+
+If Transaction B rolls back, Transaction A is not affected.
+
+## @Transactional(readOnly = true)
+
+With `@Transactional(readOnly = true)`, Spring will set the transaction to read-only mode, which can help with performance optimizations in some databases.
+
+If we will modify the data, the behaviour is depends on the JPA/database setup
+- Hibernate may skip dirty checking, so changes may not be persisted.
+- Some DB may not execute the updte query and throw an exception.
+
+## @Transaction + @Async
+
+```java
+@Transactional
+public void placeOrder() {
+    // do some work
+    sendEmail(); // @Async
+}
+
+@Async
+public void sendEmail() {
+    // send email
+}
+```
+
+The **transaction is a thread bound**, so when `sendEmail()` is called, it runs in a different thread and does not have access to the transaction started in `placeOrder()`.
+
+So if `sendEmail()` fails, it does not roll back the transaction in `placeOrder()`, because it is running in a different thread.
+
+## @Transactional + @EventListener vs @TransactionalEventListener
+
+```java
+@Transactional
+public void placeOrder() {
+    // do some work
+    eventPublisher.publishEvent(new OrderPlacedEvent());
+}
+
+@EventListener
+public void sendEmail(OrderPlacedEvent event) {
+    // send email
+}
+```
+
+```text
+Start Transaction (placeOrder())
+       ↓
+Publish Event (publshEvent())
+       ↓
+Listeners are called (sendEmail())
+       ↓
+Transaction is committed/rolled back
+```
+
+If the transaction later rolled back, the email is already sent, which is not what we want.
+
+```java
+@TransactionalEventListener
+public void sendEmail(OrderPlacedEvent event) {
+    // send email
+}
+```
+
+```text
+Start Transaction (placeOrder())
+       ↓
+Publish Event (publshEvent())
+       ↓
+Transaction is committed/rolled back
+       ↓
+Listeners are called (sendEmail())
+```
+
+If the transaction later rolled back, the listener never called and the email is not sent, which is what we want.
 
 # Spring JPA
 

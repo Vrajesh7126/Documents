@@ -345,7 +345,7 @@ MyFactoryBean myFactoryBean = context.getBean("&myFactory", MyFactoryBean.class)
 
 result: an instance of `MyFactoryBean` itself, not the `Employee` it creates.
 
-# @configuration & Proxying
+# @Configuration & Proxying
 
 ```java
 @Configuration
