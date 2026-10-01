@@ -210,7 +210,7 @@ int result = a + b; // No method call, directly adds a and b
 3. **Full GC** : Cleans Entire Heap (both Young and Old areas).
 
 ## Stop The World (STW)
-- During GC, JVM pauses all application threads to safely perform garbage collection. This is called "Stop The World" (STW) event.
+- During GC, JVM pauses all application threads to safely perform garbage collection. This is called **Stop The World** (STW) event.
 
 # Java Memory Model (JMM)
 - Main responsibility of JMM:
@@ -226,7 +226,7 @@ int result = a + b; // No method call, directly adds a and b
 - Reason : Memory leak, very large data structures, or Heap too small.
 
 3. **Thread Dump** : Shows what every thread is doing right now.
-- Useful for deadlocks, Application hangs, High CPU usage.
+- Useful for **deadlocks**, **Application hangs**, **High CPU usage**.
 - Command : `jstack <pid>`
 
 4. **Heap Dump** : Snapshot of the heap memory at a given time.
