@@ -1,13 +1,3 @@
-# Java Functional Interfaces
-
-## Index
-
-1. [Function](#1-function)
-2. [Predicate](#2-predicate)
-3. [Consumer](#3-consumer)
-4. [Supplier](#4-supplier)
-5. [Combined Example](#5-combined-example)
-6. [Quick Summary](#6-quick-summary)
 
 # Java Stream API
 
@@ -26,283 +16,6 @@
 - [Quick Summary](#quick-summary)
 
 ---
-
-# 1. Function
-
-### Purpose
-
-Takes an input and returns an output.
-
-### Syntax
-
-```java
-Function<Input, Output>
-```
-
-### Example
-
-```java
-Function<Integer, Integer> square = x -> x * x;
-
-System.out.println(square.apply(5));
-```
-
-### Output
-
-```text
-25
-```
-
-### Real Use Case
-
-Transform data.
-
-```text
-5 → 25
-10 → 100
-```
-
----
-
-# 2. Predicate
-
-### Purpose
-
-Checks a condition and returns true or false.
-
-### Syntax
-
-```java
-Predicate<Input>
-```
-
-### Example
-
-```java
-Predicate<Integer> isEven = x -> x % 2 == 0;
-
-System.out.println(isEven.test(4));
-System.out.println(isEven.test(3));
-```
-
-### Output
-
-```text
-true
-false
-```
-
-### Real Use Case
-
-Filtering data.
-
-```text
-4 → true
-3 → false
-```
-
----
-
-# 3. Consumer
-
-### Purpose
-
-Consumes a value and performs an action.
-
-Returns nothing.
-
-### Syntax
-
-```java
-Consumer<Input>
-```
-
-### Example
-
-```java
-Consumer<Integer> print = x -> System.out.println(x);
-
-print.accept(4);
-```
-
-### Output
-
-```text
-4
-```
-
-### Real Use Case
-
-Printing, logging, sending notifications, etc.
-
-```text
-Input → Action → No Return
-```
-
----
-
-# 4. Supplier
-
-### Purpose
-
-Supplies a value.
-
-Takes no input.
-
-### Syntax
-
-```java
-Supplier<Output>
-```
-
-### Example
-
-```java
-Supplier<String> value = () -> "Vrajesh Vaghasiya";
-
-System.out.println(value.get());
-```
-
-### Output
-
-```text
-Vrajesh Vaghasiya
-```
-
-### Real Use Case
-
-Generate or provide data on demand.
-
-```text
-No Input → Output
-```
-
----
-
-# 5. Combined Example
-
-Suppose we have:
-
-```java
-List<Integer> list = Arrays.asList(
-    1,2,3,4,5,6,7,8,9,10
-);
-```
-
-## Step 1: Predicate
-
-Keep only even numbers.
-
-```java
-.filter(isEven)
-```
-
-Result:
-
-```text
-2, 4, 6, 8, 10
-```
-
----
-
-## Step 2: Function
-
-Square each number.
-
-```java
-.map(square)
-```
-
-Result:
-
-```text
-4, 16, 36, 64, 100
-```
-
----
-
-## Step 3: Consumer
-
-Print each value.
-
-```java
-.forEach(print)
-```
-
-Output:
-
-```text
-4
-16
-36
-64
-100
-```
-
----
-
-## Complete Flow
-
-```text
-1,2,3,4,5,6,7,8,9,10
-            │
-            ▼
-     Predicate
-      (isEven)
-            │
-            ▼
-    2,4,6,8,10
-            │
-            ▼
-      Function
-       (square)
-            │
-            ▼
-  4,16,36,64,100
-            │
-            ▼
-      Consumer
-       (print)
-            │
-            ▼
-Prints output
-```
-
----
-
-# 6. Quick Summary
-
-| Interface | Method | Input | Output | Purpose |
-|------------|----------|---------|----------|----------|
-| Function<T,R> | apply() | Yes | Yes | Transform |
-| Predicate<T> | test() | Yes | boolean | Check condition |
-| Consumer<T> | accept() | Yes | No | Perform action |
-| Supplier<T> | get() | No | Yes | Supply value |
-
----
-
-## Easy Way To Remember
-
-```text
-Function  → Convert something
-Predicate → Check something
-Consumer  → Use something
-Supplier  → Give something
-```
-
-### Stream Flow
-
-```java
-list.stream()
-    .filter(isEven)   // Predicate
-    .map(square)      // Function
-    .forEach(print);  // Consumer
-```
-
-```text
-Filter → Transform → Consume
-```
-
 
 ---
 
@@ -760,3 +473,81 @@ list.stream()
 ```text
 Filter → Transform → Collect
 ```
+
+## Other Notes
+
+Streams are lazy.
+
+Intermediate operations (map, filter, peek, etc.) don't execute until a terminal operation is invoked.
+
+`peek()` is primarily for debugging/inspection, not for business logic or side effects.
+
+Always remember: **No terminal operation = No stream execution**
+
+# Stream Execution Flow
+
+```text
+Stream created
+      │
+      ▼
+map()
+      │
+      ▼
+filter()
+      │
+      ▼
+peek()
+      │
+      ▼
+Nothing executes yet!
+      │
+      ▼
+Terminal operation (forEach, collect, count, ...)
+      │
+      ▼
+Entire pipeline executes
+```
+
+- peek() is for debugging.
+
+# Collectors.toList() and Stream.toList()
+
+## Collectors.toList()
+```java
+List<String> list = Stream.of("A", "B", "C")
+                          .collect(Collectors.toList());
+
+list.add("D");
+
+System.out.println(list);
+
+// Output : [A, B, C, D]
+```
+
+It returns modifiable list.
+
+## Stream.toList() (Java 16+)
+
+```java
+List<String> list = Stream.of("A", "B", "C")
+                          .toList();
+
+list.add("D");
+
+// Output :
+// Exception in thread "main"
+// java.lang.UnsupportedOperationException
+```
+
+returned list is unmodifiable.
+
+If you need a modifiable list
+
+```java
+List<String> list = new ArrayList<>(
+    Stream.of("A", "B", "C").toList()
+);
+
+
+list.add("D");   // Works
+```                  

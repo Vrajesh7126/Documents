@@ -471,6 +471,8 @@ class Child extends Parent implements A {
 
 Method from the class has higher priority than a default method from an interface.
 
+The reason is backward compatibility. A class's existing behavior should not suddenly be overridden just because an interface adds a default method.
+
 Priority Order
 
 ```text

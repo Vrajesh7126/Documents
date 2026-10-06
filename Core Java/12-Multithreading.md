@@ -49,7 +49,7 @@ join(); // Wait until another thread finish it's execution
 sleep(1000);
 
 // wait for the 1 second or 
-// another thread calls join() or 
+// another thread calls notify()/notifyAll() or 
 // another thread interrupts it
 wait(1000);
 
@@ -76,7 +76,7 @@ run();  // Execution over
 - must handle `InterruptedException` while using sleep()
 - Why InterruptedException? : Another thread may interrupt sleeping thread.
 
-- `NOTES` : Sleep does not release a lock, Wait release a lock.
+- **NOTE** : Sleep does not release a lock, Wait release a lock.
 
 ```java
 try {
@@ -93,7 +93,9 @@ catch(InterruptedException e) {
 t.interrupt();
 ```
 
-- If a thread is not inside the sleep(), wait() or join(), then calling `thread.interrput()` does not throw Interrupted exception, instead java sets interrupt flag true.
+- `interrupt()` does not forcibly stop a thread; it sets the interrupt flag. The thread must check this flag and respond appropriately.
+
+- If a thread is not inside the `sleep()`, `wait()` or `join()`, then calling `thread.interrupt()` does not throw `InterruptedException`, instead java sets interrupt flag true.
 
 ```java
 // we can check something like this
@@ -101,7 +103,22 @@ while(!Thread.currentThread().isInterrupted()){
     // do some work...
 }
 ```
-- When Java throws `InterruptedException`, it clears the thread's interrupted status. `interrupted` checks current thread & clear the status.
+- When Java throws `InterruptedException`, it clears the thread's interrupted status.
+
+- To again turn the interrupt flag on after it has been cleared by an `InterruptedException`, you can call `Thread.currentThread().interrupt()` within the catch block.
+
+Example:
+```java
+// Thread A:
+try {
+    Thread.sleep(1000);
+} catch (InterruptedException e) {
+    Thread.currentThread().interrupt(); // Make interrupted flag true again
+}
+
+// Thread B:
+threadA.interrupt();
+```
 
 ### join()
 
@@ -126,7 +143,7 @@ t.start();
 ## Synchronization
 
 - Allow only one thread at a time to access critical code.
-- If exception occurs, lock automatically released.
+- If **exception occurs, lock automatically released**.
 
 ### synchronized method
 
@@ -156,7 +173,7 @@ synchronized(this) {
 ```
 
 ### Object lock
-- Why to use Object use even Iif I have a synchronized method or synchronized (this) block : 
+- Why to use Object use even if I have a synchronized method or synchronized (this) block : 
 
 ```java
 // creates a separate private lock object
@@ -171,7 +188,7 @@ synchronized(lock) {
 ```java
 // BAD : even If print and increment will not affect each others, we have used the same object lock
 class Counter{
-    count = 0;
+    int counter = 0;
     public synchronized void print(){
         System.out.println(counter);
     }
@@ -185,7 +202,7 @@ class Counter{
 
 // GOOD : Use seperate lock, because they are not affect each others
 class Counter{
-    private final Object countLock = new Object();
+    private final Object counterLock = new Object();
 
     public synchronized void print(){
         System.out.println(counter);
@@ -234,7 +251,7 @@ notifyAll()
 - Wakes one waiting thread.
 - If multiples of WAITING thread, JVM decides which thread to wake.
 - Thread goes to **RUNNABLE** state.
-- notify() does NOT Immediately Run Thread, become eligible to compete for the lock, it makes a thread to it only moves thread from WAITING to BLOCKED/RUNNABLE. Actual execution depends on scheduler, lock availability.
+- notify() does NOT Immediately Run Thread, become eligible to compete for the lock, it makes a thread to it only moves thread from **WAITING** to **BLOCKED/RUNNABLE**. Actual execution depends on scheduler, lock availability.
 
 ### notifyAll()
 
@@ -883,7 +900,7 @@ LongAdder	            // High-performance counter
 - Use AtomicStampedReference to solve ABA problem. A v1 -> B v2 -> A v3, now CAS check value + version.
 - **LongAdder** = Used for very high concurrent counters.
 - **AtomicInteger** uses one single variable, All threads fight on same counter. LongAdder creates multiple internal counters, then combine result.
-- **Volatile** = When want to see latest updated value. use at boolean flags, status variables, stop/start signals, can not use with counters(because it provides volatility not atomicity so not provide a thread safe operations) for it can use AtomicInteger.
+- **Volatile** = Provided **Visibility**. When want to see latest updated value. Without volatile, a thread may see a stale value instead another thread have updated it.
 - **AtomicReference** = CAS works If whole object ref was changes, it's not protect internal fields changes.
 - AtomicReference use with Immutable objects.
 
@@ -1035,7 +1052,7 @@ boolean finished = executor.awaitTermination(5, TimeUnit.SECONDS);
 
 ## CompletableFuture
 
-- `Future` is not provide the composition, so CompletableFuture was introduced.
+- `Future` is not provide the composition, so `CompletableFuture` was introduced.
 - Used for async tasks, API calls, microservices.
 - Can chain tasks, combine tasks, run non-blocking code
 
@@ -1167,10 +1184,12 @@ CompletableFuture.supplyAsync(() -> "Java")
 ```
 
 ```java
-// Default Thread Pool : When you do 
+// When you do 
 CompletableFuture.supplyAsync(...)
+
 //Without giving executor, Java automatically uses
 ForkJoinPool.commonPool()
+
 // This is shared internal thread pool managed by JVM
 
 // Custom Executor : You can provide your own thread pool
@@ -1246,10 +1265,11 @@ CompletableFuture.runAsync(
 );
 ```
 
-- Carrier Thread : Real OS thread used to run Virtual Threads (Carrier Thread = Platform Thread).
-- Mount : Virtual Thread attached to Carrier Thread (VT -> PT).
-- Unmount : Virtual Thread detached (VT parked, PT free).
-- Pinning : Virtual Thread cannot detach while inside some blocking operations under synchronized, Carrier Thread gets stuck, it's called pinning.
+- **Carrier Thread** : Real OS thread used to run Virtual Threads (Carrier Thread = Platform Thread).
+- **Mount** : Virtual Thread attached to Carrier Thread (VT -> PT).
+- **Unmount** : Virtual Thread detached (VT parked, PT free).
+- Unmount happens during Blocking operations, `wait()`, `sleep()`, `BlockingQueue.take()` even if queue is empty, etc.
+- **Pinning** : Virtual Thread cannot detach while inside some blocking operations under synchronized, Carrier Thread gets stuck, it's called pinning.
 
 ```java
 synchronized(lock) {
