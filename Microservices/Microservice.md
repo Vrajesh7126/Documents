@@ -1,7 +1,5 @@
 # Microservices with Java & Spring Boot — Complete Revision Notes
 
-> Fast-paced but complete revision guide for Java/Spring Boot microservices interviews.
->
 > **Core mental model:** Microservices are independently deployable services organized around business capabilities, communicating through APIs/events, with independent scaling, resilience, observability, and deployment.
 
 ---
@@ -31,7 +29,7 @@ A good microservice is generally:
 - Independently deployable
 - Independently scalable
 - Loosely coupled
-- Highly cohesive
+- Highly cohesive (Different parts working together)
 - Owned around a clear domain boundary
 - Responsible for its own data
 
@@ -88,7 +86,7 @@ They introduce additional complexity:
 - Deployment complexity
 - Service discovery
 - Observability
-- Eventual consistency
+- Eventual consistency (Data across microservices may be temporarily inconsistent, but eventually becomes consistent)
 - Failure handling
 
 A modular monolith can be a better choice for some systems.
@@ -142,31 +140,21 @@ Split around **business/domain boundaries**.
 
 # 4. Bounded Context
 
-A microservice often maps to a **bounded context** from Domain-Driven Design (DDD).
+Imagine you're building an E-commerce application using Spring Boot microservices.
 
-A bounded context defines:
+### One customer, three services
 
-> Where a particular domain model and its terminology have a specific meaning.
+1. Order Service : `Order` contains order ID, items, and order status.
 
-For example:
+2. Payment Service : `Order` means information needed to process a payment, such as the order ID and amount.
 
-```text
-Order Context
-    Order
-    OrderItem
-    OrderStatus
+3. Inventory Service : `Order` means items and quantities that need to be reserved.
 
-Payment Context
-    Payment
-    Transaction
-    PaymentStatus
-```
+Although all three services deal with the same order, each service has its own model and business rules.
 
-The word "Customer" might have different meanings or data requirements in different contexts.
+### So, what is Bounded Context?
 
-### Interview point
-
-> Service boundaries should preferably follow business capabilities and domain boundaries rather than technical layers.
+Each service's boundary defines how it understands and manages its business concepts.
 
 ---
 
@@ -193,10 +181,6 @@ Payment Service
     -> Inventory
     -> Email
 ```
-
-Easy memory:
-
-> High cohesion = things that belong together stay together.
 
 ---
 
@@ -259,16 +243,6 @@ A service can:
 - Deploy independently
 - Control its own data
 
-### Important
-
-"Database per service" does not always mean every service must have a physically separate database server.
-
-The important architectural rule is:
-
-> Other services should not directly own or manipulate another service's data.
-
-Access should happen through the owning service's API/events.
-
 ---
 
 # 8. Polyglot Persistence
@@ -317,21 +291,39 @@ Common technologies:
 
 Spring Boot/Spring ecosystem examples:
 
-- `RestClient`
-- `WebClient`
-- Spring Cloud OpenFeign
+- `RestClient` : Sync call.
 
-### Advantages
+```java
+User user = restClient.get()
+              .uri("/users/1")
+              .retrieve()
+              .body(User.class)
+```
 
-- Simple request/response model
-- Immediate result
-- Easy to understand
+- `WebClient` : Async call.
+
+```java
+Mono<User> user = webClient.get()
+                    .uri("/users/1")
+                    .retrieve()
+                    .bodyToMono(User.class)
+```
+
+- `OpenFeign` : Call an API through an interface. Sync call.
+
+```java
+@FeignClient(name = "user-service")
+public interface UserClient {
+  @GetMapping("/users/{id}")
+  User getUser(@PathVariable Long id);
+}
+```
 
 ### Disadvantages
 
 - Services become runtime-dependent on each other
-- Latency accumulates
-- Failure can propagate
+- Latency accumulates (total response time increases as a request passes through multiple microservices)
+- Failure can propagate (One service's failure affects a caller service)
 - Cascading failures are possible
 
 ---
@@ -360,8 +352,7 @@ Common technologies:
 ### Advantages
 
 - Loose runtime coupling
-- Better resilience in some workflows
-- Good for event-driven architecture
+- Good for event-driven architecture (EDA is a design where a microservices communicates by publisher-consumer model instead of directly calls each others)
 - Consumers can process independently
 
 ### Disadvantages
@@ -473,16 +464,16 @@ The API Gateway is commonly the **single entry point** for external clients.
 
 ### Responsibilities can include
 
-- Routing
-- Authentication
-- Authorization integration
-- Rate limiting
-- Request filtering
-- CORS handling
-- Header manipulation
-- Logging/observability
-- TLS termination
-- Aggregation in some designs
+- **Routing** : Route a request o a microservice based on rule such as URL.
+- **Authentication**
+- **Authorization**
+- **Rate limiting**
+- **Request filtering**
+- **CORS handling** : API Gateway controls which browser based frontend can call the microservice through the API Gateway.
+- **Header manipulation**
+- **Logging/Observability**
+- **TLS termination** : API Gateway receives HTTPS request and it decrypt it and send HTTP request to the service.
+- **Aggregation** : Combine a result from the multiples of the microservice and give a single response to the caller.
 
 ### Spring option
 
@@ -519,7 +510,7 @@ Services register themselves, and clients/gateways can discover available instan
 
 Examples:
 
-- Eureka
+- **Eureka** : maintains a registry of service instances and their addresses.
 - Consul
 - Kubernetes service discovery
 
@@ -652,67 +643,6 @@ Use profiles for environment-specific behavior/configuration, while keeping secr
 
 ---
 
-# 18. Synchronous HTTP Clients in Spring
-
-## RestClient
-
-Modern synchronous HTTP client in Spring.
-
-Conceptually:
-
-```text
-Request -> Wait -> Response
-```
-
-Use when a straightforward blocking request/response model is appropriate.
-
----
-
-## WebClient
-
-Spring's HTTP client that supports reactive/non-blocking programming.
-
-Conceptually:
-
-```text
-Request -> continue work -> response later
-```
-
-Do not simply say:
-
-> WebClient is always faster.
-
-Performance depends on workload, architecture, connection management, downstream behavior, and whether the application is actually using a non-blocking/reactive model effectively.
-
----
-
-# 19. OpenFeign
-
-Spring Cloud OpenFeign lets you define a declarative HTTP client.
-
-Example:
-
-```java
-@FeignClient(name = "payment-service")
-public interface PaymentClient {
-
-    @GetMapping("/payments/{id}")
-    Payment getPayment(@PathVariable Long id);
-}
-```
-
-Then:
-
-```java
-paymentClient.getPayment(101);
-```
-
-### Advantage
-
-You define the API as an interface instead of manually constructing every HTTP request.
-
----
-
 # 20. REST vs gRPC
 
 ## REST
@@ -733,156 +663,6 @@ You define the API as an interface instead of manually constructing every HTTP r
 Simple interview answer:
 
 > REST is common for external/public APIs and general HTTP communication, while gRPC can be useful for efficient strongly typed internal service-to-service communication.
-
----
-
-# 21. Kafka Basics
-
-Kafka is commonly used for event-driven microservices.
-
-Example:
-
-```text
-Order Service
-     |
-     | OrderCreated
-     v
-   Kafka
-   /   \
-  v     v
-Payment Notification
-```
-
-Important Kafka concepts:
-
-```text
-Producer       -> Sends records
-Consumer       -> Reads records
-Topic          -> Logical stream/category
-Partition      -> Ordered unit of a topic
-Offset         -> Position of a record in a partition
-Consumer Group -> Consumers cooperating to process a topic
-Broker         -> Kafka server
-```
-
----
-
-# 22. Kafka Topic
-
-Example:
-
-```text
-order-events
-```
-
-Events can be published to it:
-
-```text
-OrderCreated
-OrderCancelled
-OrderShipped
-```
-
-A topic is divided into partitions:
-
-```text
-order-events
-  |
-  +-- Partition 0
-  +-- Partition 1
-  +-- Partition 2
-```
-
----
-
-# 23. Kafka Partition and Ordering
-
-Kafka guarantees ordering **within a partition**, not globally across all partitions.
-
-If events for the same order must remain ordered, use a suitable key:
-
-```text
-key = orderId
-```
-
-Kafka can then route records with the same key to the same partition, preserving their order within that partition.
-
----
-
-# 24. Kafka Consumer Group
-
-Example:
-
-```text
-Topic: order-events
-
-Consumer Group: payment-group
-
-Consumer-1
-Consumer-2
-Consumer-3
-```
-
-Partitions are distributed among consumers in the group.
-
-A partition is processed by only one consumer in a given consumer group at a time.
-
-Different consumer groups can independently consume the same topic:
-
-```text
-order-events
-   |
-   +---- payment-group
-   |
-   +---- notification-group
-   |
-   +---- analytics-group
-```
-
----
-
-# 25. Kafka Consumer Offset
-
-The offset represents a record's position in a partition.
-
-Conceptually:
-
-```text
-Partition 0
-
-Offset: 0  1  2  3  4
-        A  B  C  D  E
-```
-
-The consumer tracks its progress.
-
-Offsets are important for:
-
-- Restart/recovery
-- Reprocessing
-- Delivery semantics
-
----
-
-# 26. Kafka Delivery Semantics
-
-Common concepts:
-
-### At-most-once
-
-A message may be lost, but is not normally processed more than once.
-
-### At-least-once
-
-A message is not intentionally lost, but duplicates can occur.
-
-This is common in real-world systems.
-
-### Exactly-once
-
-Achieving true end-to-end exactly-once effects is more complicated than simply enabling one Kafka setting.
-
-For business operations, idempotent consumers and transactional design are often still important.
 
 ---
 
@@ -956,10 +736,9 @@ Order
   | OrderCreated
   v
 Event Broker
-  |--------->
-  |         Payment
+  |------------> Payment
   |
-  +--------> Notification
+  +------------> Notification
 ```
 
 This can reduce direct coupling between producers and consumers.
@@ -968,33 +747,9 @@ This can reduce direct coupling between producers and consumers.
 
 # 30. Resilience and Fault Tolerance
 
-Microservices fail independently.
+**Resilience :** Ability to recover from failure.
 
-Suppose:
-
-```text
-Order Service -> Payment Service
-```
-
-Payment goes down.
-
-If Order keeps waiting/retrying forever:
-
-```text
-Request
-  |
-Timeout
-  |
-Retry
-  |
-Timeout
-  |
-Retry
-  |
-More requests
-  |
-Cascading failure
-```
+For example, If Order service calls Payment service and Payment service is down, Order service should retries request or provide a fallback.
 
 Use resilience patterns:
 
@@ -1007,213 +762,201 @@ Fallback
 Rate Limiting
 ```
 
+**Resilience4j :** A popular library for implementing resilience patterns in Java/Spring Boot applications.
+
+**Fault Tolerance :** Ability to continue working despite failures.
+
+For example, Another payment service instances automatically take over if one instance fails.
+
 ---
 
 # 31. Timeout
 
-Never allow a remote dependency to wait forever.
+**Problem :** Payment Service takes 30 seconds to respond, and Order Service keeps waiting.
 
-Example:
+**Solution :** Set a maximum waiting time, for example 3 seconds.
 
-```text
-Order -> Payment
-          |
-       2 seconds
-          |
-       Timeout
+```java
+webClient.create()
+    .get()
+    .uri("http://payment-service/pay")
+    .retrieve()
+    .bodyToMono(Payment.class)
+    .timeout(Duration.ofSeconds(3))
+    .onErrorResume(TimeoutException.class, e -> {
+        // handle timeout, maybe return fallback
+        return Mono.empty();
+    });
 ```
-
-After the timeout, the caller takes an appropriate failure path.
 
 ---
 
 # 32. Retry
 
-Useful for transient failures.
+**Problem :** Payment Service temporarily fails because of a network issue or a transient error.
 
-```text
-Request
-   |
- Failed
-   |
- Retry
-   |
- Success
+**Solution :** Retry the request a limited number of times.
+
+Using Resilience4j:
+
+```java
+@Retry(name = "paymentService")
+public Payment pay(Order order) {
+    // remote call
+}
 ```
 
-But don't retry blindly.
+Configuration example:
 
-Retry may be appropriate for:
-
-- Temporary network failure
-- Transient service unavailable condition
-- Short-lived infrastructure problem
-
-Retry may be inappropriate for:
-
-- Invalid request
-- Authentication failure
-- Validation failure
-- Permanent business error
+```yaml
+resilience4j.retry:
+  instances:
+    paymentService:
+      maxAttempts: 3
+      waitDuration: 1s
+```
 
 Use bounded retries and usually backoff/jitter.
 
----
+Configuration:
 
-# 33. Exponential Backoff
-
-Instead of retrying immediately:
-
-```text
-Retry 1 -> 100ms
-Retry 2 -> 200ms
-Retry 3 -> 400ms
-Retry 4 -> 800ms
+```yaml
+resilience4j:
+  retry:
+    instances:
+      paymentService:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2 # Waiting will be increase multiply by 2
+        enable-randomized-wait: true  # Add randomness
+        randomized-wait-factor: 0.5 # Add randomness up to 50% of the wait duration
 ```
 
-Actual values depend on system requirements.
-
-**Jitter** adds randomness to avoid many clients retrying at exactly the same time.
+```
+Base delay    Possible randomized range
+1 second	    0.5–1.5 seconds
+2 seconds	    1–3 seconds
+4 seconds	    2–6 seconds
+8 seconds	    4–12 seconds
+```
 
 ---
 
 # 34. Circuit Breaker
 
-Circuit Breaker prevents repeatedly calling an unhealthy dependency.
+**Problem :** Payment Service is continuously failing. Order Service keeps calling it, wasting resources
 
-Example:
+**Solution :** Circuit Breaker temporarily stops requests to Payment Service.
 
-```text
-Order -> Payment
-          X
-```
-
-If Payment repeatedly fails:
+## Circuit Breaker States
 
 ```text
-Order -> Circuit Breaker -> Payment
-```
-
-The circuit opens:
-
-```text
-Order -> Circuit Breaker -> DON'T CALL Payment
-```
-
-This allows the failing service time to recover and protects the caller.
-
----
-
-# 35. Circuit Breaker States
-
-```text
-CLOSED
+CLOSED : Request are allowed
   |
   | failures exceed threshold
   v
-OPEN
+OPEN : Request are blocked
   |
-  | wait for configured duration
+  | wait duration expires
   v
-HALF-OPEN
+HALF-OPEN : Test Requests are allowed
   |
   +---- success ----> CLOSED
   |
   +---- failure ----> OPEN
 ```
 
-### CLOSED
-
-Requests flow normally.
-
-### OPEN
-
-Calls are rejected/short-circuited.
-
-### HALF-OPEN
-
-A limited number of test calls are allowed to determine whether the dependency recovered.
-
----
-
-# 36. Resilience4j
-
-A popular library for Spring Boot applications.
-
-Common modules/patterns:
-
-- Circuit Breaker
-- Retry
-- Rate Limiter
-- Bulkhead
-- Time Limiter
-
-Conceptually:
+**Implementation :**
 
 ```java
-@CircuitBreaker(name = "paymentService")
+@CircuitBreaker(name = "paymentService", fallbackMethod = "fallbackPay")
 public Payment pay(Order order) {
     // remote call
 }
 ```
 
-The exact configuration depends on the application.
+**Configuration :**
+```yaml
+resilience4j:
+  circuitbreaker:
+    instances:
+      paymentService:
+        slidingWindowSize: 10 # Number of calls to consider for calculating the failure rate
+        failureRateThreshold: 50  # Percentage of failures that will trip the circuit breaker
+        waitDurationInOpenState: 10s  # Time to wait before transitioning from OPEN to HALF-OPEN
+        permittedNumberOfCallsInHalfOpenState: 2  # Number of test calls allowed in HALF-OPEN state
+```
+
+# 35. Fallback
+
+**Problem :** Payment Service is unavailable, and Order Service cannot complete the payment request.
+
+**Solution :** Provide an alternative response instead of allowing the request to fail.
+
+**Implementation :**
+
+```java
+public PaymentResponse fallbackPay(PaymentRequest request, Throwable ex) {
+    return new PaymentResponse("Payment service is currently unavailable. Please try again later.");
+}
+```
 
 ---
 
 # 37. Bulkhead Pattern
 
-Think of a ship:
+**Problem :** Payment Service is slow. Hundreds of Order Service requests are waiting for payment responses and consuming all available threads.
 
-```text
-+---------+---------+---------+
-| Section | Section | Section |
-+---------+---------+---------+
+**Solution :** Limit the number of concurrent calls to Payment Service.
+
+**Implementation :**
+
+```java
+@Bulkhead(name = "paymentService", type = Bulkhead.Type.SEMAPHORE)
+public PaymentResponse pay(PaymentRequest request) {
+    // remote call
+}
 ```
 
-If one section floods, the entire ship should not necessarily sink.
+**Configuration :**
 
-In software:
-
-```text
-Payment requests -> limited resources
-Order requests   -> separate/limited resources
+```yaml
+resilience4j:
+  bulkhead:
+    instances:
+      paymentService:
+        maxConcurrentCalls: 10  # Limit to 10 concurrent calls
+        maxWaitDuration: 0s      # No waiting; reject immediately if limit is reached
 ```
-
-If Payment becomes slow, it should not consume all application resources.
-
-That is the **Bulkhead pattern**.
-
----
-
-# 38. Fallback
-
-If a dependency is unavailable, the application may provide an alternative response.
-
-Example:
-
-```text
-Product Service
-      |
-Recommendation Service X
-      |
-Fallback -> return popular products
-```
-
-Fallback should be meaningful and safe.
-
-Do not hide serious failures behind fake success responses.
 
 ---
 
 # 39. Rate Limiting
 
-Rate limiting controls how many requests are accepted in a period.
+**Problem :** Order Service sends 1,000 payment requests per second, overwhelming Payment Service.
 
-Example:
+**Solution :** Limit how many requests can be made within a time period.
 
-```text
-100 requests/minute/client
+**Implementation :**
+
+```java
+@RateLimiter(name = "paymentService")
+public PaymentResponse pay(PaymentRequest request) {
+    // remote call
+}
+```
+
+**Configuration :**
+
+```yaml
+resilience4j:
+  ratelimiter:
+    instances:
+      paymentService:
+        limitForPeriod: 100  # Allow 100 requests
+        limitRefreshPeriod: 1m # Per minute
+        timeoutDuration: 0s    # No waiting; reject immediately if limit is reached
 ```
 
 If the client exceeds the limit:
@@ -1222,117 +965,116 @@ If the client exceeds the limit:
 429 Too Many Requests
 ```
 
-Useful for:
+# 40. Health Check
 
-- Protecting services
-- Preventing abuse
-- Controlling traffic
-- Protecting downstream dependencies
+**Problem :** One Payment Service instance crashes, but requests are still being sent to it.
 
-Rate limiting can be implemented at a gateway or service level.
+**Solution :** Use **Spring Boot Actuator** and Kubernetes health probes.
+
+**Add Actuator :**
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+Kubernetes checks the instance's health and can stop routing traffic to an unhealthy instance. For it, need to provide the configuration at Kubernetes.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: order-service
+
+  template:
+    metadata:
+      labels:
+        app: order-service
+
+    spec:
+      containers:
+        - name: order-service
+          image: order-service:latest
+
+          ports:
+            - containerPort: 8080
+
+          # Every 10 seconds kubernetes checks whether Order Service is alive, If it repeatedly fails, Kubernetes restarts the container
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 10
+
+          # Every 5 seconds Kubernetes checks whether Order Service is ready to receive traffic, If readiness fails, Kubernetes removes that Pod from the Service's available traffic endpoints.
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            periodSeconds: 5
+```
 
 ---
 
 # 40. Distributed Transactions
 
-In a monolith:
+Distributed Transaction is a transactions which involves a multiples of services and DB, where all operations must be successed together or be handled consistently if something fails.
 
-```text
-BEGIN TRANSACTION
+If multiples of services participate in one business operation, we should maintain data consistency.
 
-Create Order
-Update Payment
-Update Inventory
+## Saga Pattern
 
-COMMIT
+Provides Eventual Consistency.
+
+Instead of one global transaction, each service excutes its own local transaction.
+
+If a later step fails, previously completed steps are compensated using a *Compensation action**.
+
+```
+Create Order (Success)
+        ↓
+Process Payment (Success)
+        ↓
+Reserve Inventory (Fail)
+        ↓
+[Compansation Actions]
+        ↓
+Refund Payment (Compensated)
+        ↓
+Cancel Order (Compensated)
 ```
 
-If everything uses one database transaction, rollback can be straightforward.
+## Saga Choreography
 
-In microservices:
-
-```text
-Order DB
-Payment DB
-Inventory DB
-```
-
-A normal local database transaction does not automatically span all of them.
-
-This creates the distributed transaction problem.
-
----
-
-# 41. Saga Pattern
-
-A Saga breaks a distributed business transaction into a sequence of **local transactions**.
-
-Example:
+Saga Choreography is a way of implementating distributed transactions where microservices communicates through events, and each service independently decides what action to perform when it receives an event.
 
 ```text
-Create Order
-     |
-     v
-Process Payment
-     |
-     v
-Reserve Inventory
+Order Service (Create Order)
+  Publishes: OrderCreated
+          ↓
+Payment Service (Process Payment)
+  Publishes: PaymentCompleted
+          ↓
+Inventory Srevice (Reerve Inventory Failed)
+  Publishes: InventoryReservationFailed
+          ↓
+Payment Service (Refund Payment)
+  Publishes: PaymentRefunded
+          ↓
+Order Service (Cancels Order)
+  Publishes: OrderCancelled
 ```
 
-If a later step fails, use a **compensating action**.
-
-Example:
-
-```text
-Create Order       -> Success
-Payment            -> Success
-Inventory Reserve  -> Failure
-
-Compensate:
-Cancel/mark order accordingly
-Refund payment
-```
-
-The exact compensation depends on business rules.
-
----
-
-# 42. Saga Choreography
-
-Services coordinate through events.
-
-```text
-Order Service
-     |
- OrderCreated
-     v
-   Kafka
-     |
-     v
-Payment Service
-     |
-PaymentCompleted
-     v
-   Kafka
-     |
-     v
-Inventory Service
-```
-
-There is no single central coordinator.
-
-### Advantage
-
-- Less central orchestration
-
-### Disadvantage
-
-- Workflow can become difficult to understand
-- Business flow is distributed across event handlers
-
----
-
-# 43. Saga Orchestration
+## Saga Orchestration
 
 A central orchestrator controls the workflow.
 
@@ -1344,15 +1086,6 @@ A central orchestrator controls the workflow.
 ```
 
 The orchestrator tells services what action to perform and handles failures/compensations.
-
-### Advantage
-
-- Centralized workflow visibility
-
-### Disadvantage
-
-- Orchestrator becomes an important component
-- Can become too powerful if poorly designed
 
 ---
 
@@ -1382,62 +1115,155 @@ This is **eventual consistency**.
 
 ---
 
+# 45. Strong Consistency
+
+Strong Consistency means once a write operation succeeds, every subsequent read must return that latest value (or a newer value), by any of the replication.
+
+It increase latency and reduce availability during network failure.
+
+## Synchronous Replication
+
+Methods to achieve Strong Consistency.
+
+```
+Application
+Withdraw ₹2,000
+    ↓
+Node A (Primary)
+Updates balance to ₹8,000
+    ↓
+Node B (Replica)
+Confirms replication of ₹8,000
+    ↓
+Write Acknowledged
+```
+
+---
+
 # 45. Idempotency
 
-An operation is idempotent when repeating it produces the same final effect as executing it once.
+Idempotancy is the property of an operation where executing it multiple times produce the same result as executing it once.
 
-This is especially important with:
+**Problem :**
 
-- Payments
-- Order creation
-- Kafka consumers
-- Retries
+For example, If Customer places an order worth $5000.
+  1. Order Service sends a payment request.
+  2. Payment Service successfully deducts ₹5,000.
+  3. Due to a network issue, Order Service doesn't receive the response.
+  4. Order Service retries the same payment request.
+  5. Without idempotency, Payment Service might deduct another ₹5,000!
 
-Example:
+**Solution :** Use **Idempotancy key**.
 
-```text
-Idempotency-Key: ABC123
+```
+Order Service (Send Payment request with key: ORDER-101-PAYMENT)
+      ↓
+Payment Request
+First Request:
+  Key doesn't exist.
+  Process payment: ₹5,000.
+  Store key and payment result.
+
+Retry Request:
+  Key exist
+  Don't process payment again.
+  Return previously stored result.
 ```
 
-Client accidentally sends the same payment request twice.
+**Impleentation :**
 
-The service recognizes:
+```java
+public PaymentResponse makePayment(
+        PaymentRequest request, String key) {
 
-```text
-ABC123 -> already processed
+    Payment payment = repository.findByIdempotencyKey(key);
+
+    if (payment != null) {
+        return payment.getResponse();
+    }
+
+    // Process payment
+    PaymentResponse response = processPayment(request);
+
+    // Store payment and key
+    savePayment(key, response);
+
+    return response;
+}
 ```
 
-and does not charge twice.
+**Important Implementation details :**
 
-### Important
+Add a **UNIQUE constraints** on the idempotancy key.
 
-Idempotency usually requires storing/looking up the idempotency key and designing the business operation accordingly.
+Handle concurrent request so two identical request cannot process payment simultaneoudly. (Using Distributed locking)
+
+Validate same key will not be useful with a different payment request.
 
 ---
 
-# 46. Distributed Lock vs Idempotency
+# 46. Distributed Lock
 
-Do not automatically solve duplicate processing using distributed locks.
+Distributed Lock is a mechanism that ensures only one service instance or process can access or modify a shared resource at a time, even when multiple instances are running.
 
-Often, idempotency is a better business-level solution.
+For example before processind payment, an instance must aquire a lock.
 
-Example:
+```
+OrderService
+-------------------------
+Instance-1 (Lock aquired)
+Instance-2 (Waiting)
+Instance-3 (Waiting)
+        ↓
+Distributed Lock Manager (Redis)
+        ↓
+Instance 1 processes payment
+Release a lock
+```
 
-```text
-Payment request
-   |
-Idempotency key
-   |
-Already processed?
-  / \
-Yes  No
- |    |
-Return  Process
-result  + record key
+**Implementation :**
+
+Add Dependency :
+
+```xml
+<dependency>
+    <groupId>org.redisson</groupId>
+    <artifactId>redisson-spring-boot-starter</artifactId>
+    <version>3.20.0</version>
+</dependency>
+```
+
+```java
+public class PaymentService {
+  private final RedissonClient redissonClient;
+
+  public void processPayment(Long orderId) {
+    // getLock: Creates or retrieves a lock for a particular order
+    RLock lock = redissonClient.getLock("payment-lock-" + orderId);
+
+    try {
+      // attempt to aquire a lock (wait to 5 seconds to aquire, and if aquire hold for 30 seconds)
+      boolean acquired = lock.tryLock(5, 30, TimeUnit.SECONDS);
+
+      if (!acquired) {
+          throw new RuntimeException("Payment is already being processed");
+      }
+
+      // process payment
+    }
+    catch (InterruptedException e) {
+    }
+    finally {
+      if (lock.isHeldByCurrentThread()) {
+          lock.unlock();
+      }
+  }
+}
 ```
 
 ---
 
+# Pending (will be covered later)
 # 47. Authentication vs Authorization
 
 ## Authentication
@@ -1538,69 +1364,70 @@ Do not assume that internal traffic is automatically trusted.
 
 # 51. Distributed Logging
 
-A request can travel through many services:
+Distributed Logging is a mechanism for collecting, storing, and analyzing logs generated by multiple microservices in one centralized location.
 
-```text
-Gateway
-   |
-Order
-   |
-Payment
-   |
-Notification
+```
+Order Service, Payment Service, Inventory Service
+                    ↓
+  Log Collector (Fluentd/Fluent Bit or Grafana Alloy)
+                    ↓
+Centralized logging system (ElasticSearch or Loki)
+        Collects and stores logs
+                    ↓
+        Kibana or Grafana
+  Search, Filter and visualize logs
 ```
 
-If every service logs independently, debugging becomes difficult.
+**EFK Stack** : Elastic Search + Fluentd + Kibana
 
-Use a **Correlation ID** or **Trace ID**.
+**ELK Stack** : Elastic Search + Logstash + Kibana
 
-Example:
+Fluentd and Logstash perform similar log collection, but they are different tools.
 
-```text
-Trace ID = ABC123
+**Grafana Loki stack** : Grafana + Loki
 
-Gateway       -> ABC123
-Order Service -> ABC123
-Payment       -> ABC123
-Notification  -> ABC123
-```
+## Correlation ID.
 
-Now logs can be searched using the same identifier.
+Correlation ID is a unique ID assigned to an incoming request and passed through all microservices.
 
----
+It helps us identify which logs belong to the same request.
 
-# 52. Centralized Logging
+For example, If payment fails you can search a log using **Correlation ID** and see the complete request journey across all services.
 
-Instead of manually checking each server:
+**Implementation :**
 
-```text
-Service A logs
-Service B logs
-Service C logs
-```
-
-send logs to a centralized logging system.
-
-Common technologies include:
-
-- ELK/Elastic Stack
-- OpenSearch
-- Loki
-- Cloud logging services
-
-The exact stack depends on the organization.
-
----
+1. Generate a Unique ID at API Gateway or at first service.
+2. Pass it to downstream services through an HTTP header, such as X-Correlation-ID.
+3. Fetch Correlation-ID and store it at MDC (Mapped Diagnostic Context), as MDC is available to the logger so logger can print it into the log.
+4. We can see logs at ElasticSearch/Loki.
 
 # 53. Distributed Tracing
 
-Logging answers:
+Distributed Tracing is a technique used to track the complete journey of a single request across multiple microservices.
 
-> What was logged?
+## Trace ID
 
-Tracing answers:
+Complete journey of a request across services.
 
-> Where did the request travel and how much time did each operation take?
+## Span ID
+
+One individual operation within that journey.
+
+For a single request, Trace ID is same but Span ID vary acorss a different operations.
+
+**Use case :**
+
+    Identify how much time each operation took.
+    Identify which service is slow.
+    Where an error occured.
+
+**Tools :**
+
+Micrometer Tracing: Instruments in Spring Boot.
+
+OpenTelemetry: Standard for collecting and propagating traces.
+
+ZipKin: UI for a Tracing.
 
 Example:
 
@@ -1616,26 +1443,23 @@ Request
   +-- Notification  30ms
 ```
 
-Common technologies:
-
-- OpenTelemetry
-- Jaeger
-- Zipkin
-- Vendor tracing platforms
-
 ---
 
 # 54. Metrics and Monitoring
 
+Metrics is numerical measurements of your app's health & performance.
+
+Monitoring is continuously observing those metrics to dleect a problem.
+
 Important metrics:
 
 ```text
+CPU
+Memory
 Request count
 Error rate
 Latency
 Throughput
-CPU
-Memory
 Database connection usage
 Kafka lag
 ```
@@ -1643,154 +1467,37 @@ Kafka lag
 A common ecosystem:
 
 ```text
-Spring Boot Actuator
-        |
-     Metrics
-        |
-    Prometheus
-        |
-     Grafana
+Spring Boot Application
+(Expose Application metrics)
+            ↓
+        Prometheus
+(Collect & stores metrics)
+            ↓
+        Grafana
+(Display dashboard & Graph)
 ```
-
----
-
-# 55. Spring Boot Actuator
-
-Spring Boot Actuator provides production-oriented monitoring and management features.
-
-Common endpoint:
-
-```text
-/actuator/health
-```
-
-Other endpoints may expose metrics and application information depending on configuration.
-
-Do not expose sensitive actuator endpoints publicly without appropriate security.
 
 ---
 
 # 56. Liveness vs Readiness
 
-Especially important in container/Kubernetes environments.
+Use in container/Kubernetes environments.
 
 ## Liveness
 
-> Is the application process alive?
+Checks whether the application is still alive or stuck.
 
-If liveness fails, the platform may restart the container.
+If it fails, **Kubernetes restarts** the container.
+
+Example, Application is **deadlocked**.
 
 ## Readiness
 
-> Is the application ready to receive traffic?
+Checks whether the application is ready to receive traffic.
 
-If readiness fails, traffic should generally be removed from that instance while the process may continue running.
+If it fails, Kubernetes stops sending traffic to that Pod and **remove a pod**. it doen't restart the container.
 
-Example:
-
-```text
-Application running
-     |
-     +-- Liveness: OK
-     |
-     +-- Readiness: NOT READY
-```
-
----
-
-# 57. Containerization with Docker
-
-Microservices are commonly packaged as containers.
-
-```text
-Order Service
-     |
-Docker Image
-     |
-Docker Container
-```
-
-Each service can run independently.
-
-Example:
-
-```text
-Docker
- |
- +-- Order container
- +-- Payment container
- +-- User container
-```
-
-Containers provide packaging and isolation; they do not automatically solve distributed-system problems.
-
----
-
-# 58. Kubernetes
-
-Kubernetes commonly manages containers at scale.
-
-It can help with:
-
-- Deployment
-- Scaling
-- Service discovery
-- Load balancing
-- Self-healing
-- Rolling updates
-- Configuration
-- Secrets
-- Scheduling
-
-Example:
-
-```text
-Order Service
-     |
-     +-- Pod 1
-     +-- Pod 2
-     +-- Pod 3
-```
-
-If a pod dies:
-
-```text
-Pod 1 -> X
-
-Kubernetes
-    |
-creates/replaces pod
-```
-
----
-
-# 59. Pod, Deployment, Service
-
-Basic Kubernetes terminology:
-
-### Pod
-
-Smallest deployable unit; commonly contains one application container.
-
-### Deployment
-
-Manages a desired number of pod replicas and rollout strategy.
-
-### Service
-
-Provides stable networking/discovery to a set of pods.
-
-Conceptually:
-
-```text
-Client
-  |
-Kubernetes Service
-  |
-  +-- Pod 1
-  +-- Pod 2
-  +-- Pod 3
-```
+Example: Application is **starting up** or temporarily unable to connect to a required dependency.
 
 ---
 
@@ -1798,26 +1505,11 @@ Kubernetes Service
 
 ## Vertical Scaling
 
-Increase resources for an instance:
-
-```text
-4 GB RAM -> 16 GB RAM
-2 CPU    -> 8 CPU
-```
+Increase resources for an instance.
 
 ## Horizontal Scaling
 
-Increase number of instances:
-
-```text
-1 instance
-    |
-    v
-3 instances
-    |
-    v
-10 instances
-```
+Increase number of instances.
 
 Microservices commonly benefit from horizontal scaling because services can be scaled independently.
 
@@ -1825,117 +1517,71 @@ Microservices commonly benefit from horizontal scaling because services can be s
 
 # 61. Stateless Services
 
-A stateless service does not rely on local in-memory state to maintain a user's session between requests.
+A stateless service doesn't store user/session/request-specific state inside memory.
 
-Bad for scaling:
+Every request can be handled by any available instance without depending on previous requests.
 
-```text
-Request 1 -> Server A
-             session in RAM
+Suport **Horizontal scaling**.
 
-Request 2 -> Server B
-             session missing
-```
-
-Better approaches:
-
-```text
-JWT
-or
-External session/state store
-```
-
-Then requests can reach any instance.
+How to achieve a Statelessness ?
+    
+    Store data in shared DB.
+    Store session in Redis, not in local memory.
+    Use JWT.
 
 ---
 
 # 62. API Versioning
 
-Suppose the existing API is:
+If we update a new version of an API, old should be work as it is because old client may use it.
 
-```text
-/api/v1/orders
-```
+**Methods to implement it :**
 
-A breaking change may require:
+**URI Versioning :** `api/v1/users`
 
-```text
-/api/v2/orders
-```
+**Query Parameters :** `api/users?version=1`
 
-Versioning helps old clients continue working while new clients migrate.
-
-Other versioning approaches exist, such as headers/media types, but URL versioning is easy to understand.
+**Header Versioning :** `X-API-Version: 1`
 
 ---
 
 # 63. Backward Compatibility
 
-Microservices often deploy independently.
+Backward Compatibility means introducing new changes without breaking existing clients or systems that depend on the old behavior.
 
-Therefore, Service A may temporarily communicate with an older version of Service B.
+For example,
 
-Prefer backward-compatible changes.
+Old Response:
 
-Example:
-
-Good:
-
-```text
-Add optional response field
+```json
+{
+    "id": 101,
+    "name": "Vrajesh"
+}
 ```
 
-Risky/breaking:
+New Response:
 
-```text
-Rename required field
-Remove endpoint
-Change meaning of existing field
+```json
+{
+    "id": 101,
+    "name": "Vrajesh"
+    "email": "vrajesh@gmail.com"
+}
 ```
 
-This is especially important for event schemas.
+Existing clients still work because old fields remain unchanged.
+
+Backward compitability could be break if:
+
+    Removing an existing API field.
+    Rename it.
+    Changing field's data type.
+    Making an Optional field mandatory.
 
 ---
 
-# 64. Contract Testing
-
-Contract testing verifies that a service provider and its consumers agree on an API/event contract.
-
-Example:
-
-```text
-Consumer expects:
-GET /payments/101
-
-Provider promises:
-response contains id + status
-```
-
-Tools/patterns can include consumer-driven contract testing such as Pact.
-
----
-
-# 65. API Gateway vs Load Balancer
-
-They are not exactly the same.
-
-### Load Balancer
-
-Main focus:
-
-> Distribute traffic among service instances.
-
-### API Gateway
-
-Main focus:
-
-> Provide an API entry point and handle routing plus cross-cutting concerns.
-
-A gateway may itself use load balancing.
-
----
-
-# 66. Service Mesh
+# 66. Service Mesh (Skipped)
 
 A service mesh moves some service-to-service networking concerns into infrastructure.
 
@@ -1973,60 +1619,59 @@ Do not introduce a service mesh unless the operational complexity is justified.
 
 # 67. CAP Theorem
 
-CAP stands for:
+The CAP Theorem indicate that distributed DB can gaurantee at most two properties during network partition.
 
-```text
-C -> Consistency
-A -> Availability
-P -> Partition Tolerance
-```
+**Consistency :** Every read gets the latest successfully written value.
 
-In a distributed system, when a network partition occurs, a system cannot simultaneously guarantee both perfect consistency and availability.
+**Availability :** Every request receives a response, even if the response may contain stale data.
 
-Partition tolerance is generally treated as necessary in distributed systems because network partitions can happen.
+**Partition Tolerance :** It means a Distributed system continues working even when network communication between some of its nodes or services breaks.
 
-The practical discussion is about the trade-off between consistency and availability under partition.
+Suppose DB has 2 replicas:
 
----
+    Node A stores balance = ₹1,000.
+    Node B stores balance = ₹1,000.
 
-# 68. Eventual Consistency vs Strong Consistency
+Now the network connection between them breaks.
 
-## Strong Consistency
+Node A receives a withdrawal request and updates the balance to ₹500. Node B still has ₹1,000.
 
-After a successful write, subsequent reads see the latest value according to the system's consistency model.
+What should system do ?
 
-## Eventual Consistency
+**Option 1: CP**
 
-Different parts of the system may temporarily have different values, but they converge over time.
+Rejects a request on Node B until consistency can be restored.
 
-Microservices using asynchronous events frequently use eventual consistency.
+**Option 2: AP**
+
+Allow Node B to respond with ₹1,000, even though it is stale.
+
+**Note :** Partition tolerance is generally treated as necessary in distributed systems because network partitions can happen.
 
 ---
 
 # 69. Twelve-Factor Application Principles
 
-The Twelve-Factor methodology provides guidance for cloud-native applications.
+The 12 factor App is a methodology for building modern, scalable, maintainable, cloud-native and microservice application.
 
-Important ideas to remember:
-
-```text
-Configuration -> environment
-Stateless processes
-Logs -> event streams
-Disposable processes
-Separate build/release/run
-Explicit dependencies
-Port binding
-Dev/prod parity
-```
-
-For interviews, the core idea is:
-
-> Applications should be easy to deploy, scale, configure, and operate in modern cloud environments.
+| # | Principle | Simple Meaning |
+|---|---|---|
+| 1 | Codebase | One codebase tracked in Git, with multiple deployments. |
+| 2 | Dependencies | Explicitly declare dependencies (Maven/Gradle). |
+| 3 | Config | Store configuration outside code using environment variables. |
+| 4 | Backing Services | Treat databases, Kafka, Redis as attached resources. |
+| 5 | Build, Release, Run | Separate building, configuration/release, and execution. |
+| 6 | Processes | Run the application as stateless processes. |
+| 7 | Port Binding | Application exposes itself through a port. |
+| 8 | Concurrency | Scale by running multiple application instances. |
+| 9 | Disposability | Start quickly and shut down gracefully. |
+| 10 | Dev/Prod Parity | Keep development and production environments similar. |
+| 11 | Logs | Treat logs as event streams; let infrastructure collect them. |
+| 12 | Admin Processes | Run maintenance tasks as separate processes. |
 
 ---
 
-# 70. CI/CD in Microservices
+# 70. CI/CD in Microservices (Skipped)
 
 Each service can have its own pipeline.
 
@@ -2054,7 +1699,7 @@ Possible deployment strategies:
 
 ---
 
-# 71. Rolling Deployment
+# 71. Rolling Deployment (Skipped)
 
 Gradually replace old instances:
 
@@ -2075,7 +1720,7 @@ Usually avoids taking the whole service offline.
 
 ---
 
-# 72. Blue-Green Deployment
+# 72. Blue-Green Deployment (Skipped)
 
 Maintain two environments:
 
@@ -2098,7 +1743,7 @@ Rollback can be relatively quick by switching traffic back.
 
 ---
 
-# 73. Canary Deployment
+# 73. Canary Deployment (Skipped)
 
 Release to a small percentage first:
 
@@ -2123,176 +1768,55 @@ Eventually:
 
 ---
 
-# 74. Common Microservice Failure Scenario
-
-Suppose:
-
-```text
-Client
-  |
-Gateway
-  |
-Order Service
-  |
-Payment Service
-```
-
-Payment becomes slow.
-
-Without resilience:
-
-```text
-Order requests
-     |
-     v
-Payment
-     |
-Slow
-     |
-Threads/resources get consumed
-     |
-Order becomes unhealthy
-     |
-Gateway sees failures
-```
-
-Better:
-
-```text
-Order
-  |
-Timeout
-  |
-Circuit Breaker
-  |
-Retry only where appropriate
-  |
-Fallback/alternative flow
-```
-
-This prevents one dependency from taking down the whole system.
-
----
-
-# 75. Cascading Failure
-
-A failure in one service causes failures in dependent services.
-
-Example:
-
-```text
-Payment Service
-      X
-      |
-Order Service
-      X
-      |
-Gateway
-      X
-      |
-Clients
-```
-
-Ways to reduce cascading failures:
-
-- Timeouts
-- Circuit breakers
-- Bulkheads
-- Rate limiting
-- Backpressure
-- Queueing
-- Graceful degradation
-- Appropriate retries
-
----
-
 # 76. Graceful Degradation
 
-When a non-critical dependency fails, provide reduced functionality instead of failing everything.
+Graceful Degradation means when a **service or dependency** fails, the application continues providing its core functionality while temporarily disabling non-essential features.
 
-Example:
+Example :
 
-```text
-Recommendation Service -> DOWN
-
-Product page still works
-but recommendations are unavailable.
-```
-
-This is better than:
+Suppose E-Commerce has:
 
 ```text
-Recommendation Service -> DOWN
-        |
-Entire Product Page -> DOWN
+Order Service
+Payment Service
+Recommendation Service
 ```
+
+Now, Recommendation Service is down. Instead of making the entire application unavailable, 
+
+    Users can still browse products.
+    Users can still place orders.
+
+How to achieve it :
+    
+**Fallback :** Show default recommendation instead.
+
+**Circuit Breaker :** Stop repeatedly calling a failing service.
+
+**Timeout :** Avoid waiting indefinitely.
+
+**Cached Data :** Serve previously stored data when appropriate.
 
 ---
 
 # 77. Retry Storm
 
-A dangerous situation:
+A Retry Storm happens when **multiple services repeatedly retry failed requests**, creating excessive traffic and making an already struggling service even worse.
 
-```text
-100 clients
-   |
-dependency fails
-   |
-all clients retry immediately
-   |
-200 requests
-   |
-more overload
-   |
-more failures
-```
+How to prevent it:
 
-Avoid using:
-
-- Unbounded retries
-- Immediate retries
-- Excessively high retry counts
-
-Use:
-
-- Bounded retries
-- Exponential backoff
-- Jitter
-- Circuit breaker
-- Appropriate timeouts
+| Technique           | Purpose                                    |
+| ------------------- | ------------------------------------------ |
+| Exponential Backoff | Increase waiting time between retries      |
+| Jitter              | Add randomness to retry delays             |
+| Retry Limit         | Restrict maximum retry attempts            |
+| Circuit Breaker     | Temporarily stop calling failing services  |
+| Timeout             | Prevent requests from waiting indefinitely |
+| Rate Limiting       | Restrict incoming request volume           |
 
 ---
 
-# 78. Distributed Debugging
-
-In a monolith:
-
-```text
-One application
-```
-
-In microservices:
-
-```text
-Gateway
-  -> Service A
-      -> Service B
-          -> Kafka
-              -> Service C
-```
-
-Debugging requires:
-
-- Correlation/trace IDs
-- Centralized logs
-- Metrics
-- Distributed tracing
-- Clear error responses
-- Good dashboards
-
----
-
-# 79. Database Migration
+# 79. Database Migration (Skipped)
 
 Each service should ideally own its schema and migrations.
 
@@ -2317,85 +1841,106 @@ Do not manually modify production schemas without a controlled migration strateg
 
 # 80. Caching
 
-Caching can reduce latency and database load.
+Caching means storing frequently accessed data temporarily in a faster storage location.
 
-Example:
+Cache stores data as a Key-Value pair.
 
-```text
-Client
-  |
-Product Service
-  |
-Redis Cache
-  |
-If miss:
-  |
-Database
+### Types of Caching
+
+| Type              | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| In-Memory Cache   | Stores data in application memory              |
+| Distributed Cache | Shared cache across multiple instances (Redis) |
+| Browser Cache     | Stores resources in the browser                |
+
+## Common Caching Strategies
+
+**Cache-Aside :** Application checks cache first; on a miss, fetches from DB and updates cache. (Achieve using `@Cacheable`)
+
+**Read-Through :** Cache itself automatically fetches data from the DB on a miss.
+
+**Write-Through :** Writes to cache and DB together.
+
+**Write-Behind :** Writes to cache first, then asynchronously updates the DB.
+
+## Caching Annotations
+
+### @Cacheable
+
+Checks cache first; executes method only on cache miss.
+
+```java
+@Cacheable(value = "products", key = "#id")
+public Product getProduct(Long id) {
+    return productRepository.findById(id).orElseThrow();
+}
 ```
 
-Common cache technology:
+### @CacheEvict
 
-- Redis
-- Caffeine
-- Distributed/cloud caches
+Removes entries from cache.
 
-Important concepts:
-
-- Cache-aside
-- TTL
-- Cache invalidation
-- Cache stampede
-- Consistency
-
----
-
-# 81. Cache-Aside Pattern
-
-Typical flow:
-
-```text
-Read
- |
-Cache?
- / \
-Yes No
- |   |
-Return DB
-       |
-       v
-     Cache
-       |
-       v
-     Return
+```java
+@CacheEvict(value = "products", key = "#id")
+public void updateProduct(Long id, Product product) {
+    productRepository.save(product);
+}
 ```
 
-The application controls loading data into the cache.
+### @CachePut
 
----
+Always executes the method and updates the cache.
 
-# 82. Cache Stampede
-
-Suppose a popular cache entry expires.
-
-Thousands of requests all see a cache miss:
-
-```text
-Cache expired
-     |
-1000 requests
-     |
-1000 DB calls
-     |
-DB overloaded
+```java
+@CachePut(value = "users", key = "#user.id")
+public User updateUser(User user) {
+    return userRepository.save(user);
+}
 ```
 
-Possible protections:
+### @Caching
 
-- Request coalescing
-- Staggered expiration
-- Locks where appropriate
-- Refresh-ahead
-- Good TTL strategy
+Combine multiple caching annotations on one method.
+
+```java
+@Caching(
+    evict = {
+        @CacheEvict(value = "users", key = "#id"),
+        @CacheEvict(value = "userList", allEntries = true)
+    }
+)
+public void deleteUser(Long id) {
+    userRepository.deleteById(id);
+}
+```
+
+## Caching Challanges
+
+### Cache Invalidation
+
+Cache Invalidation means removing or updating cached data when the original database data changes.
+
+### Cache Stampede
+
+Cache Stampede happens when a popular cache entry expires for a **single key** and many requests simultaneously try to fetch the same data from the database.
+
+**Prevention :** Use **Distributed locking** so only one request can fetch the data from DB and store into the cache.
+
+### Cache Penetration
+
+Cache Penetration happens when requests repeatedly ask for data that doesn't exist in the DB.
+
+**Preventation :** Store negative results into the cache (e.g., product not found)
+
+### Cache Avalanche
+
+Cache Avalanche happens when many cache entries with a **different keys** expire simultaneously, causing a large number of requests to hit the database at once.
+
+**Preventation :** 
+    
+    Add a random TTL (TTL Jitter).
+    Avoid setting identical expiration times.
+    Apply rate limiting. 
 
 ---
 
@@ -2418,9 +1963,7 @@ For cross-service business workflows, consider patterns such as Saga and transac
 
 # 84. Transactional Outbox Pattern
 
-Problem:
-
-You need to update your DB and publish an event.
+Problem: You need to update your DB and publish an event.
 
 Bad:
 
@@ -2438,11 +1981,9 @@ Or:
 2. DB update -> failure
 ```
 
-Now event says something happened when the DB says it did not.
+**Solution :**
 
-### Outbox solution
-
-Store the event in the same local database transaction:
+Store the event in the same local database transaction (Outbox table):
 
 ```text
 BEGIN TRANSACTION
@@ -2453,7 +1994,7 @@ Insert Outbox Event
 COMMIT
 ```
 
-Then a separate process publishes outbox events to Kafka.
+Then a separate process publishes outbox events to Kafka by reading from the Outbox table.
 
 ```text
 Order DB
@@ -2469,31 +2010,28 @@ Order DB
          Kafka
 ```
 
-This helps achieve reliable event publication.
-
 ---
 
 # 85. Transactional Inbox / Idempotent Consumer
 
-A consumer may receive the same event more than once.
+Prevents a microservice from procesing the same Kafka event multiple times.
 
-Use an idempotent consumer strategy.
+**Solution :** Use an idempotent consumer strategy.
 
-Conceptually:
+**Example :**
 
-```text
-Receive event
-    |
-Already processed?
-   / \
- Yes  No
-  |    |
-Ignore Process
-       |
-Record event ID
-```
+Payment Service maintains an `inbox` table.
 
-This is especially useful with at-least-once delivery.
+| event_id | event_type   | status    |
+| -------- | ------------ | --------- |
+| EVT-101  | OrderCreated | PROCESSED |
+
+When an event arrives:
+1. Check whether its event_id already exists in Inbox.
+2. If it exists, skip processing.
+3. Otherwise, insert the event ID.
+4. Process the business operation.
+5. Mark it processed.
 
 ---
 
